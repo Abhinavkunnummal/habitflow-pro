@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 import '../../../core/components/aurora_card.dart';
 import '../../../core/components/habit_button.dart';
 import '../../../core/components/habit_text_field.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../models/goal_model.dart';
+import '../providers/goals_provider.dart';
 
-class CreateGoalScreen extends StatefulWidget {
+class CreateGoalScreen extends ConsumerStatefulWidget {
   const CreateGoalScreen({super.key});
 
   @override
-  State<CreateGoalScreen> createState() => _CreateGoalScreenState();
+  ConsumerState<CreateGoalScreen> createState() => _CreateGoalScreenState();
 }
 
-class _CreateGoalScreenState extends State<CreateGoalScreen> {
+class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
   final _titleController = TextEditingController();
   String _selectedTier = 'Silver';
   int _targetDays = 30;
+  int _xpReward = 250;
 
   final List<String> _tiers = ['Bronze (7d)', 'Silver (30d)', 'Gold (100d)'];
 
@@ -24,6 +29,52 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
   void dispose() {
     _titleController.dispose();
     super.dispose();
+  }
+
+  void _onTierSelected(String tier) {
+    setState(() {
+      _selectedTier = tier;
+      if (tier.startsWith('Bronze')) {
+        _targetDays = 7;
+        _xpReward = 100;
+      } else if (tier.startsWith('Gold')) {
+        _targetDays = 100;
+        _xpReward = 500;
+      } else {
+        _targetDays = 30;
+        _xpReward = 250;
+      }
+    });
+  }
+
+  Future<void> _handleSaveGoal() async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a goal title')),
+      );
+      return;
+    }
+
+    final rawTier = _selectedTier.split(' ')[0]; // 'Bronze', 'Silver', 'Gold'
+
+    final newGoal = GoalModel(
+      id: const Uuid().v4(),
+      title: title,
+      tier: rawTier,
+      targetValue: _targetDays,
+      targetUnit: 'days',
+      currentProgress: 0,
+      status: 'active',
+      xpReward: _xpReward,
+      createdAt: DateTime.now(),
+    );
+
+    await ref.read(goalsProvider.notifier).addGoal(newGoal);
+
+    if (mounted) {
+      context.go('/goals');
+    }
   }
 
   @override
@@ -84,9 +135,9 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          const Text(
-                            '+250 XP Reward upon completion',
-                            style: TextStyle(
+                          Text(
+                            '+$_xpReward XP Reward upon completion ($_targetDays days)',
+                            style: const TextStyle(
                               color: AppColors.secondary,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
@@ -104,6 +155,7 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
                 controller: _titleController,
                 label: 'Goal Title',
                 hintText: 'e.g. 30 Days of Morning Hydration',
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 20),
 
@@ -117,7 +169,7 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
               Wrap(
                 spacing: 8,
                 children: _tiers.map((tier) {
-                  final isSelected = _selectedTier.contains(tier.split(' ')[0]);
+                  final isSelected = _selectedTier == tier;
                   return ChoiceChip(
                     label: Text(tier),
                     selected: isSelected,
@@ -131,7 +183,7 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
                     ),
                     shape: const StadiumBorder(),
                     onSelected: (val) {
-                      if (val) setState(() => _selectedTier = tier);
+                      if (val) _onTierSelected(tier);
                     },
                   );
                 }).toList(),
@@ -140,9 +192,7 @@ class _CreateGoalScreenState extends State<CreateGoalScreen> {
 
               HabitButton(
                 label: 'Lock In Goal',
-                onPressed: () {
-                  context.go('/goals');
-                },
+                onPressed: _handleSaveGoal,
               ),
             ],
           ),

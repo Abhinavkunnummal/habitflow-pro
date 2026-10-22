@@ -46,6 +46,12 @@ jobs:
         working-directory: frontend
         run: flutter pub get
 
+      - name: Run Flutter Static Analysis & Unit Tests
+        working-directory: frontend
+        run: |
+          flutter analyze --no-fatal-infos
+          flutter test
+
       - name: Build Android APK (${{ inputs.build_mode || 'debug' }})
         working-directory: frontend
         run: |

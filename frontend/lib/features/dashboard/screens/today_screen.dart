@@ -11,6 +11,7 @@ import '../../../core/theme/app_typography.dart';
 import '../models/habit.dart';
 import '../providers/habits_provider.dart';
 import '../providers/theme_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
@@ -96,7 +97,7 @@ class TodayScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Good morning, Alex',
+                          'Good morning, ${ref.watch(authProvider).user?.name.split(' ').first ?? 'Alex'}',
                           style: AppTypography.headline(
                             color: isDark
                                 ? AppColors.darkTextPrimary
@@ -107,7 +108,13 @@ class TodayScreen extends ConsumerWidget {
                     ),
                     Row(
                       children: [
-                        const StreakBadge(streakDays: 14, compact: true),
+                        StreakBadge(
+                          streakDays: habits.fold<int>(
+                            ref.watch(authProvider).user?.currentStreak ?? 0,
+                            (prev, h) => h.streak > prev ? h.streak : prev,
+                          ),
+                          compact: true,
+                        ),
                         const SizedBox(width: 8),
                         IconButton(
                           onPressed: () {

@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/components/aurora_card.dart';
 import '../../../core/components/habit_button.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../providers/goals_provider.dart';
 
-class GoalsScreen extends StatelessWidget {
+class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final goals = ref.watch(goalsProvider);
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
+    final userLevel = user?.level ?? 6;
+    final userXp = user?.xp ?? 1450;
+    final targetXp = userLevel * 300;
+    final double levelProgress = (targetXp > 0)
+        ? (userXp % 300) / 300.0
+        : 0.5;
+
+    final activeGoals = goals.where((g) => g.status != 'archived').toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -63,7 +78,7 @@ class GoalsScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Level 6 Flow Master',
+                                  'Level $userLevel Flow Master',
                                   style: AppTypography.headline(
                                     color: isDark
                                         ? AppColors.darkTextPrimary
@@ -71,7 +86,7 @@ class GoalsScreen extends StatelessWidget {
                                   ).copyWith(fontSize: 16),
                                 ),
                                 Text(
-                                  '1,450 / 2,000 XP to Level 7',
+                                  '$userXp XP Total',
                                   style: AppTypography.labelMedium(
                                     color: isDark
                                         ? AppColors.darkTextSecondary
@@ -104,7 +119,7 @@ class GoalsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     LinearProgressIndicator(
-                      value: 1450 / 2000,
+                      value: levelProgress.clamp(0.05, 1.0),
                       backgroundColor: isDark
                           ? AppColors.darkSurfaceContainerHigh
                           : AppColors.surfaceContainerHigh,
@@ -119,66 +134,120 @@ class GoalsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Weekly Quest Challenge
-              Text(
-                'Active Weekly Quest',
-                style: AppTypography.headline(
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ).copyWith(fontSize: 18),
+              // Active Horizon Goals Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Active Goals & Quests',
+                    style: AppTypography.headline(
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ).copyWith(fontSize: 18),
+                  ),
+                  Text(
+                    '${activeGoals.length} Active',
+                    style: AppTypography.labelMedium(color: AppColors.primary),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              AuroraCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+              if (activeGoals.isEmpty)
+                AuroraCard(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Column(
                       children: [
+                        const Icon(Icons.flag_outlined, size: 40, color: Colors.grey),
+                        const SizedBox(height: 10),
                         Text(
-                          'Perfect Morning Week',
+                          'No horizon goals created yet.',
                           style: AppTypography.titleMedium(
                             color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                           ),
                         ),
-                        const Text(
-                          '4 / 5 Days',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Set a 7, 30, or 100-day milestone to accelerate your streaks.',
+                          textAlign: TextAlign.center,
+                          style: AppTypography.labelMedium(
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Complete hydration and reading 5 days this week.',
-                      style: AppTypography.labelMedium(
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
+                )
+              else
+                ...activeGoals.map((goal) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: AuroraCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  goal.title,
+                                  style: AppTypography.titleMedium(
+                                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: goal.tier == 'Gold'
+                                      ? Colors.amber.withOpacity(0.2)
+                                      : (goal.tier == 'Bronze'
+                                          ? Colors.brown.withOpacity(0.2)
+                                          : Colors.blueGrey.withOpacity(0.2)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${goal.currentProgress} / ${goal.targetValue} ${goal.targetUnit}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (goal.description != null && goal.description!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              goal.description!,
+                              style: AppTypography.labelMedium(
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 14),
+                          LinearProgressIndicator(
+                            value: goal.progressPercentage,
+                            backgroundColor: isDark
+                                ? AppColors.darkSurfaceContainerHigh
+                                : AppColors.surfaceContainerHigh,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              goal.isCompleted ? AppColors.secondary : AppColors.primary,
+                            ),
+                            minHeight: 8,
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: List.generate(5, (index) {
-                        final isComplete = index < 4;
-                        return Expanded(
-                          child: Container(
-                            height: 8,
-                            margin: EdgeInsets.only(right: index < 4 ? 6 : 0),
-                            decoration: BoxDecoration(
-                              color: isComplete
-                                  ? AppColors.secondaryFixed
-                                  : (isDark
-                                      ? AppColors.darkSurfaceContainerHigh
-                                      : AppColors.surfaceContainerHigh),
-                              borderRadius: BorderRadius.circular(9999),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+                  );
+                }),
 
-              // Trophy Showcase
+              const SizedBox(height: 16),
+
+              // Trophy Cabinet
               Text(
                 'Trophy Cabinet',
                 style: AppTypography.headline(
