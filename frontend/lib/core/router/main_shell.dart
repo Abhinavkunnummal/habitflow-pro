@@ -44,7 +44,7 @@ class MainShell extends StatelessWidget {
               ? AppColors.primary.withOpacity(0.3)
               : AppColors.primaryFixed,
           elevation: 0,
-          labelBehavior: NavigationBarDestinationLabelBehavior.alwaysShow,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.bolt_outlined),
