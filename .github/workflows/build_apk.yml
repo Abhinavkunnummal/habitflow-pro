@@ -1,0 +1,68 @@
+name: Build HabitFlow Pro Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: 'Build Mode (debug or release)'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Verify Flutter Installation
+        run: flutter --version
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: flutter pub get
+
+      - name: Build Android APK (${{ inputs.build_mode || 'debug' }})
+        working-directory: frontend
+        run: |
+          if [ "${{ inputs.build_mode }}" = "release" ]; then
+            flutter build apk --release
+          else
+            flutter build apk --debug
+          fi
+
+      - name: Find and Verify APK Output
+        run: |
+          ls -lh frontend/build/app/outputs/flutter-apk/
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HabitFlowPro-Android-APK
+          path: frontend/build/app/outputs/flutter-apk/app-*.apk
+          if-no-files-found: error
+          retention-days: 14
