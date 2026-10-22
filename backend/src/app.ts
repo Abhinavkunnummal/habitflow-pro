@@ -7,6 +7,10 @@ import { isDatabaseConnected } from './config/database';
 import { errorHandler, AppError } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 import authRoutes from './routes/auth.routes';
+import habitRoutes from './routes/habit.routes';
+import completionRoutes from './routes/completion.routes';
+import goalRoutes from './routes/goal.routes';
+import dashboardRoutes from './routes/dashboard.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -78,6 +82,18 @@ export function createApp(): Application {
 
   // Auth Routes
   v1Router.use('/auth', authRoutes);
+
+  // Habit CRUD & Completion Sub-routes
+  v1Router.use('/habits', habitRoutes);
+
+  // Standalone Daily Completion Routes
+  v1Router.use('/completions', completionRoutes);
+
+  // Goal & Milestone Routes
+  v1Router.use('/goals', goalRoutes);
+
+  // Dashboard Summary Route
+  v1Router.use('/dashboard', dashboardRoutes);
 
   app.use('/api/v1', v1Router);
 
