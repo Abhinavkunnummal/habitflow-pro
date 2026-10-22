@@ -272,6 +272,26 @@ class ProfileScreen extends ConsumerWidget {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => context.go('/reminders'),
                     ),
+                    const Divider(height: 20),
+                    // Focus Timer & Soundscapes
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.timer_outlined, color: AppColors.primary),
+                      title: Text(
+                        'Focus Timer & Soundscapes',
+                        style: AppTypography.titleMedium(
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        ).copyWith(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        'Pomodoro presets & ambient focus sounds',
+                        style: AppTypography.labelMedium(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.go('/timer'),
+                    ),
                   ],
                 ),
               ),

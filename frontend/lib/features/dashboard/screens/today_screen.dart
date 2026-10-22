@@ -130,6 +130,18 @@ class TodayScreen extends ConsumerWidget {
                           ),
                         ),
                         IconButton(
+                          tooltip: 'Focus Timer',
+                          onPressed: () => context.go('/timer'),
+                          icon: Icon(
+                            Icons.timer_outlined,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                            size: 22,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Search Directory',
                           onPressed: () => context.go('/search'),
                           icon: Icon(
                             Icons.search_rounded,
@@ -217,6 +229,44 @@ class TodayScreen extends ConsumerWidget {
                                     ? AppColors.darkTextSecondary
                                     : AppColors.textSecondary,
                               ).copyWith(fontSize: 12),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () => context.go('/timer'),
+                              borderRadius: BorderRadius.circular(9999),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(9999),
+                                  border: Border.all(
+                                    color: AppColors.primary.withOpacity(0.25),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.timer_outlined,
+                                      size: 13,
+                                      color: AppColors.primary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Start Focus Timer',
+                                      style: AppTypography.labelMedium(
+                                        color: AppColors.primary,
+                                      ).copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
