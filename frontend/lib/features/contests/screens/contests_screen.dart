@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/components/aurora_card.dart';
-import '../../../core/components/habit_button.dart';
 import '../../../core/components/habit_text_field.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -272,7 +270,7 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
             // Title & Description
             Text(
               contest.title,
-              style: AppTypography.titleLarge(
+              style: AppTypography.headline(
                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ).copyWith(fontSize: 17, fontWeight: FontWeight.bold),
             ),
