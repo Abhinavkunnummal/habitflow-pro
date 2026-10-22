@@ -165,6 +165,14 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   runSpacing: 6,
                   children: [
                     ActionChip(
+                      label: const Text('Render Cloud (onrender.com)', style: TextStyle(fontSize: 11)),
+                      onPressed: () {
+                        setDialogState(() {
+                          urlController.text = 'https://habitflow-pro-backend.onrender.com/api/v1';
+                        });
+                      },
+                    ),
+                    ActionChip(
                       label: const Text('PC Wi-Fi (192.168.1.2)', style: TextStyle(fontSize: 11)),
                       onPressed: () {
                         setDialogState(() {

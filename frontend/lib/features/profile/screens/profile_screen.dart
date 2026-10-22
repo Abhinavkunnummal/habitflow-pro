@@ -39,6 +39,33 @@ class ProfileScreen extends ConsumerWidget {
                 border: OutlineInputBorder(),
               ),
             ),
+            const SizedBox(height: 10),
+            const Text('Quick Presets:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                ActionChip(
+                  label: const Text('Render Cloud (onrender.com)', style: TextStyle(fontSize: 11)),
+                  onPressed: () {
+                    urlController.text = 'https://habitflow-pro-backend.onrender.com/api/v1';
+                  },
+                ),
+                ActionChip(
+                  label: const Text('PC Wi-Fi (192.168.1.2)', style: TextStyle(fontSize: 11)),
+                  onPressed: () {
+                    urlController.text = 'http://192.168.1.2:5000/api/v1';
+                  },
+                ),
+                ActionChip(
+                  label: const Text('Localhost (5000)', style: TextStyle(fontSize: 11)),
+                  onPressed: () {
+                    urlController.text = 'http://localhost:5000/api/v1';
+                  },
+                ),
+              ],
+            ),
           ],
         ),
         actions: [

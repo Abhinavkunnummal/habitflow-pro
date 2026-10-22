@@ -21,6 +21,9 @@
   ],
   "author": "HabitFlow Pro Team",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -30,6 +33,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.10.1",
+    "typescript": "^5.7.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -40,7 +44,6 @@
     "@types/node": "^22.13.4",
     "@types/supertest": "^7.2.1",
     "supertest": "^7.3.1",
-    "tsx": "^4.19.3",
-    "typescript": "^5.7.3"
+    "tsx": "^4.19.3"
   }
 }
