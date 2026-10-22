@@ -6,6 +6,7 @@ import { env } from './config/env';
 import { isDatabaseConnected } from './config/database';
 import { errorHandler, AppError } from './middleware/errorHandler';
 import { logger } from './utils/logger';
+import authRoutes from './routes/auth.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -74,6 +75,9 @@ export function createApp(): Application {
       database: dbStatus,
     });
   });
+
+  // Auth Routes
+  v1Router.use('/auth', authRoutes);
 
   app.use('/api/v1', v1Router);
 
