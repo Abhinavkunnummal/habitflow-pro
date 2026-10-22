@@ -5,8 +5,8 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
+    "build": "tsc && node -e \"const fs=require('fs'); try{fs.cpSync('dist', 'src/dist', {recursive:true})}catch(e){}; try{fs.cpSync('dist', '../dist', {recursive:true})}catch(e){}\"",
+    "start": "node -e \"const fs=require('fs'); const file = fs.existsSync('dist/server.js') ? './dist/server.js' : fs.existsSync('backend/dist/server.js') ? './backend/dist/server.js' : fs.existsSync('../dist/server.js') ? '../dist/server.js' : './src/dist/server.js'; require(file);\"",
     "test": "tsx --test tests/**/*.test.ts",
     "lint": "tsc --noEmit",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\""
