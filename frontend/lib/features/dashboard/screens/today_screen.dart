@@ -79,33 +79,42 @@ class TodayScreen extends ConsumerWidget {
             // Top App Bar
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          DateFormat('EEEE, MMM d').format(selectedDate),
-                          style: AppTypography.labelMedium(
-                            color: isDark
-                                ? AppColors.darkTextTertiary
-                                : AppColors.textTertiary,
-                          ).copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Good morning, ${ref.watch(authProvider).user?.name.split(' ').first ?? 'Alex'}',
-                          style: AppTypography.headline(
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.textPrimary,
+                    // Dynamic greeting wrapped in Expanded so it never overflows
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateFormat('EEEE, MMM d').format(selectedDate),
+                            style: AppTypography.labelMedium(
+                              color: isDark
+                                  ? AppColors.darkTextTertiary
+                                  : AppColors.textTertiary,
+                            ).copyWith(fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            'Good morning, ${ref.watch(authProvider).user?.name.split(' ').first ?? 'Alex'}',
+                            style: AppTypography.headline(
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    // Action controls with compact bounds to prevent horizontal overflow
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         StreakBadge(
                           streakDays: habits.fold<int>(
@@ -114,8 +123,52 @@ class TodayScreen extends ConsumerWidget {
                           ),
                           compact: true,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 2),
                         IconButton(
+                          tooltip: 'Community Contests & Leaderboard',
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.all(5),
+                          constraints: const BoxConstraints(),
+                          onPressed: () => context.go('/contests'),
+                          icon: const Icon(
+                            Icons.emoji_events_rounded,
+                            color: AppColors.streakFire,
+                            size: 20,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Focus Timer',
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.all(5),
+                          constraints: const BoxConstraints(),
+                          onPressed: () => context.go('/timer'),
+                          icon: Icon(
+                            Icons.timer_outlined,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                            size: 20,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Search Directory',
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.all(5),
+                          constraints: const BoxConstraints(),
+                          onPressed: () => context.go('/search'),
+                          icon: Icon(
+                            Icons.search_rounded,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                            size: 20,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Toggle Theme',
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.all(5),
+                          constraints: const BoxConstraints(),
                           onPressed: () {
                             ref.read(themeModeProvider.notifier).toggleTheme();
                           },
@@ -126,29 +179,7 @@ class TodayScreen extends ConsumerWidget {
                             color: isDark
                                 ? AppColors.secondaryFixed
                                 : AppColors.primary,
-                            size: 22,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Focus Timer',
-                          onPressed: () => context.go('/timer'),
-                          icon: Icon(
-                            Icons.timer_outlined,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary,
-                            size: 22,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Search Directory',
-                          onPressed: () => context.go('/search'),
-                          icon: Icon(
-                            Icons.search_rounded,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary,
-                            size: 22,
+                            size: 20,
                           ),
                         ),
                       ],
@@ -231,42 +262,85 @@ class TodayScreen extends ConsumerWidget {
                               ).copyWith(fontSize: 12),
                             ),
                             const SizedBox(height: 8),
-                            InkWell(
-                              onTap: () => context.go('/timer'),
-                              borderRadius: BorderRadius.circular(9999),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.12),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                InkWell(
+                                  onTap: () => context.go('/timer'),
                                   borderRadius: BorderRadius.circular(9999),
-                                  border: Border.all(
-                                    color: AppColors.primary.withOpacity(0.25),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.timer_outlined,
-                                      size: 13,
-                                      color: AppColors.primary,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Start Focus Timer',
-                                      style: AppTypography.labelMedium(
-                                        color: AppColors.primary,
-                                      ).copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(9999),
+                                      border: Border.all(
+                                        color: AppColors.primary.withOpacity(0.25),
                                       ),
                                     ),
-                                  ],
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.timer_outlined,
+                                          size: 13,
+                                          color: AppColors.primary,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Focus Timer',
+                                          style: AppTypography.labelMedium(
+                                            color: AppColors.primary,
+                                          ).copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                InkWell(
+                                  onTap: () => context.go('/contests'),
+                                  borderRadius: BorderRadius.circular(9999),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.streakFire.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(9999),
+                                      border: Border.all(
+                                        color: AppColors.streakFire.withOpacity(0.25),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.emoji_events_rounded,
+                                          size: 13,
+                                          color: AppColors.streakFire,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Contests 🏆',
+                                          style: AppTypography.labelMedium(
+                                            color: AppColors.streakFire,
+                                          ).copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

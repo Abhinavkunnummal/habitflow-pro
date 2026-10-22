@@ -17,6 +17,7 @@ import '../../features/reminders/screens/reminders_screen.dart';
 import '../../features/search/screens/search_screen.dart';
 import '../../features/splash/screens/splash_screen.dart';
 import '../../features/timer/screens/focus_timer_screen.dart';
+import '../../features/contests/screens/contests_screen.dart';
 import '../../features/weekly_review/screens/weekly_review_screen.dart';
 import 'main_shell.dart';
 
@@ -94,6 +95,11 @@ final appRouter = GoRouter(
       path: '/reminders',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const RemindersScreen(),
+    ),
+    GoRoute(
+      path: '/contests',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ContestsScreen(),
     ),
 
     // Stateful Navigation Shell for 5 Tabs

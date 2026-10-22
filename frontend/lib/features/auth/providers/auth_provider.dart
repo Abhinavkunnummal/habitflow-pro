@@ -186,8 +186,41 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
-  void continueOffline() {
+  void continueOffline({String? name, String? email}) {
+    final offlineUser = UserModel(
+      id: 'usr_local_${DateTime.now().millisecondsSinceEpoch}',
+      email: email ?? 'local@habitflow.pro',
+      name: name ?? 'Habit Explorer',
+      level: 1,
+      xp: 100,
+      currentStreak: 2,
+      longestStreak: 5,
+    );
+    _sessionStorage.saveUser(offlineUser.toMap());
     state = state.copyWith(
+      status: AuthStatus.authenticated,
+      user: offlineUser,
+      token: 'offline_token',
+      isOfflineMode: true,
+      clearError: true,
+    );
+  }
+
+  void signInDemoUser() {
+    final demoUser = const UserModel(
+      id: 'usr_demo_alex',
+      email: 'alex@habitflow.pro',
+      name: 'Alex Rivera',
+      level: 6,
+      xp: 1450,
+      currentStreak: 12,
+      longestStreak: 24,
+    );
+    _sessionStorage.saveUser(demoUser.toMap());
+    state = state.copyWith(
+      status: AuthStatus.authenticated,
+      user: demoUser,
+      token: 'demo_token_alex_123',
       isOfflineMode: true,
       clearError: true,
     );

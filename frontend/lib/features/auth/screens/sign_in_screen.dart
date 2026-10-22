@@ -66,7 +66,62 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
     if (success && mounted) {
       context.go('/today');
+    } else if (mounted) {
+      final err = ref.read(authProvider).errorMessage ?? '';
+      if (err.toLowerCase().contains('connect') ||
+          err.toLowerCase().contains('network') ||
+          err.toLowerCase().contains('server') ||
+          err.toLowerCase().contains('time')) {
+        _showOfflineFallbackDialog(email, _isSignUp ? _nameController.text.trim() : null);
+      }
     }
+  }
+
+  void _showOfflineFallbackDialog(String email, String? name) {
+    final apiClient = ref.read(apiClientProvider);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.cloud_off_rounded, color: AppColors.streakFire),
+            SizedBox(width: 8),
+            Text('Server Offline'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Could not connect to the backend server at:\n${apiClient.currentBaseUrl}\n\n'
+              'Ensure your PC backend is running ("npm run dev" on 192.168.1.2:5000), or continue in Offline / Demo Mode now.',
+              style: const TextStyle(fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showServerConfigDialog();
+            },
+            child: const Text('Change Server IP'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(authProvider.notifier).continueOffline(
+                    name: name ?? email.split('@').first,
+                    email: email,
+                  );
+              context.go('/today');
+            },
+            child: const Text('Continue Offline'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showServerConfigDialog() {
@@ -78,54 +133,94 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Backend API Server'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Configure the REST API endpoint for physical device testing or cloud hosting:',
-              style: TextStyle(fontSize: 13),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Backend API Server'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Configure the REST API endpoint for physical device testing or cloud hosting:',
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: urlController,
+                  decoration: const InputDecoration(
+                    labelText: 'Base URL',
+                    hintText: 'http://192.168.1.2:5000/api/v1',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Quick Presets:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    ActionChip(
+                      label: const Text('PC Wi-Fi (192.168.1.2)', style: TextStyle(fontSize: 11)),
+                      onPressed: () {
+                        setDialogState(() {
+                          urlController.text = 'http://192.168.1.2:5000/api/v1';
+                        });
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('Emulator (10.0.2.2)', style: TextStyle(fontSize: 11)),
+                      onPressed: () {
+                        setDialogState(() {
+                          urlController.text = 'http://10.0.2.2:5000/api/v1';
+                        });
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('Localhost (5000)', style: TextStyle(fontSize: 11)),
+                      onPressed: () {
+                        setDialogState(() {
+                          urlController.text = 'http://localhost:5000/api/v1';
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Make sure your computer runs "npm run dev" inside backend/ and both phone and PC are on the same Wi-Fi.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                labelText: 'Base URL',
-                hintText: 'http://192.168.1.X:5000/api/v1',
-                border: OutlineInputBorder(),
-              ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'For Android physical phone via USB/Wi-Fi: use your computer\'s LAN IP or an HTTPS tunnel (e.g. ngrok / cloud).',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
+            FilledButton(
+              onPressed: () async {
+                final newUrl = urlController.text.trim();
+                if (newUrl.isNotEmpty) {
+                  await sessionStorage.setCustomBaseUrl(newUrl);
+                  apiClient.updateBaseUrl(newUrl);
+                  if (mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Server URL updated to $newUrl')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Save'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final newUrl = urlController.text.trim();
-              if (newUrl.isNotEmpty) {
-                await sessionStorage.setCustomBaseUrl(newUrl);
-                apiClient.updateBaseUrl(newUrl);
-                if (mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Server URL updated to $newUrl')),
-                  );
-                }
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
@@ -331,7 +426,30 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 isLoading: isLoading,
                 onPressed: _handleSubmit,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+
+              // Instant 1-Tap Demo Sign In Button
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  side: BorderSide(
+                    color: AppColors.primary.withOpacity(0.4),
+                  ),
+                ),
+                onPressed: () {
+                  ref.read(authProvider.notifier).signInDemoUser();
+                  context.go('/today');
+                },
+                icon: const Icon(Icons.bolt_rounded, color: AppColors.primary, size: 20),
+                label: Text(
+                  '1-Tap Demo Sign In (Explore Instantly)',
+                  style: AppTypography.button(color: AppColors.primary).copyWith(fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 16),
 
               // Divider
               Row(

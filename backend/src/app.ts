@@ -11,6 +11,7 @@ import habitRoutes from './routes/habit.routes';
 import completionRoutes from './routes/completion.routes';
 import goalRoutes from './routes/goal.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import contestRoutes from './routes/contest.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -94,6 +95,9 @@ export function createApp(): Application {
 
   // Dashboard Summary Route
   v1Router.use('/dashboard', dashboardRoutes);
+
+  // Contest & Community Leaderboard Routes
+  v1Router.use('/contests', contestRoutes);
 
   app.use('/api/v1', v1Router);
 

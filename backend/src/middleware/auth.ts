@@ -67,3 +67,31 @@ export function authenticate(
     next(new AppError('Authentication failed', 401, 'UNAUTHORIZED'));
   }
 }
+
+export function optionalAuthenticate(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return next();
+  }
+
+  const parts = authHeader.split(' ');
+  if (parts.length === 2 && parts[0] === 'Bearer') {
+    try {
+      const decoded = jwt.verify(parts[1], env.JWT_SECRET) as {
+        sub: string;
+        email: string;
+      };
+      req.user = {
+        id: decoded.sub,
+        email: decoded.email,
+      };
+    } catch {
+      // Silently proceed for optional auth
+    }
+  }
+  next();
+}

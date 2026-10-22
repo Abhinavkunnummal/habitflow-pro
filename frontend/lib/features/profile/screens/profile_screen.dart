@@ -292,6 +292,26 @@ class ProfileScreen extends ConsumerWidget {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => context.go('/timer'),
                     ),
+                    const Divider(height: 20),
+                    // Contests & Community Leaderboard
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.emoji_events_rounded, color: AppColors.streakFire),
+                      title: Text(
+                        'Community Contests & Leaderboard',
+                        style: AppTypography.titleMedium(
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        ).copyWith(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        'Compete with friends, climb ranks & claim badges',
+                        style: AppTypography.labelMedium(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.go('/contests'),
+                    ),
                   ],
                 ),
               ),
