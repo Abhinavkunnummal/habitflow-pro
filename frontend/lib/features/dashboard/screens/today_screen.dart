@@ -8,7 +8,6 @@ import '../../../core/components/streak_badge.dart';
 import '../../../core/components/weekly_strip.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
-import '../models/habit.dart';
 import '../providers/habits_provider.dart';
 import '../providers/theme_provider.dart';
 import '../../auth/providers/auth_provider.dart';

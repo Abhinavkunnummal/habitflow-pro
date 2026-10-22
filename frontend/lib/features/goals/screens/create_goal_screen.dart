@@ -26,6 +26,14 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
   final List<String> _tiers = ['Bronze (7d)', 'Silver (30d)', 'Gold (100d)'];
 
   @override
+  void initState() {
+    super.initState();
+    _titleController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     super.dispose();
@@ -155,7 +163,6 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                 controller: _titleController,
                 label: 'Goal Title',
                 hintText: 'e.g. 30 Days of Morning Hydration',
-                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 20),
 

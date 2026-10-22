@@ -69,7 +69,7 @@ class ApiException implements Exception {
             statusCode: 404,
           );
         } else if (statusCode != null && statusCode >= 500) {
-          return const ApiException(
+          return ApiException(
             message: 'Server error. Please try again shortly.',
             code: 'SERVER_ERROR',
             statusCode: statusCode,

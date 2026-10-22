@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/api/api_client.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/api/api_providers.dart';
 import '../../../core/storage/session_storage.dart';
