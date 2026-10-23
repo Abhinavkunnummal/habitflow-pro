@@ -14,8 +14,23 @@ import '../providers/habits_provider.dart';
 import '../providers/theme_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 
-class TodayScreen extends ConsumerWidget {
+class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key});
+
+  @override
+  ConsumerState<TodayScreen> createState() => _TodayScreenState();
+}
+
+class _TodayScreenState extends ConsumerState<TodayScreen> {
+  Key _refreshKey = UniqueKey();
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _refreshKey = UniqueKey();
+    });
+    await ref.read(habitsProvider.notifier).fetchHabitsFromBackend();
+    await ref.read(habitLogsProvider.notifier).syncTodayCompletions(DateTime.now());
+  }
 
   String _getTimeGreeting() {
     final hour = DateTime.now().hour;
@@ -65,7 +80,7 @@ class TodayScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final habits = ref.watch(habitsProvider);
     final logsNotifier = ref.watch(habitLogsProvider.notifier);
@@ -89,8 +104,12 @@ class TodayScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: AppColors.primary,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
             // Top App Bar
             SliverToBoxAdapter(
               child: Padding(
@@ -394,9 +413,9 @@ class TodayScreen extends ConsumerWidget {
               ),
             ),
 
-            // Daily Study & Flow Motivation Card
-            const SliverToBoxAdapter(
-              child: StudyMotivationCard(),
+            // Daily Study & Flow Motivation Card (Refreshes with fresh quote on pull-to-refresh)
+            SliverToBoxAdapter(
+              child: StudyMotivationCard(key: _refreshKey),
             ),
 
             // 7-Day Horizontal Calendar Strip
@@ -672,6 +691,7 @@ class TodayScreen extends ConsumerWidget {
           ],
         ),
       ),
+    ),
       // Floating Action Button
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.go('/habit/new'),

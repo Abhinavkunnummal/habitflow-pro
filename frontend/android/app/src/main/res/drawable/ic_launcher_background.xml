@@ -14,17 +14,17 @@
                 android:endX="108"
                 android:endY="108"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#FF120E24" />
-                <item android:offset="0.5" android:color="#FF1F1445" />
-                <item android:offset="1.0" android:color="#FF0D1E19" />
+                <item android:offset="0.0" android:color="#FF0D281E" />
+                <item android:offset="0.5" android:color="#FF1A123A" />
+                <item android:offset="1.0" android:color="#FF091612" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- Subtle luminous background aura ring -->
+    <!-- Radiant Golden Achievement Aura -->
     <path
-        android:fillColor="#1579FAC2"
+        android:fillColor="#18FFD700"
         android:pathData="M54,16 A38,38 0 1 1 53.9,16 Z" />
     <path
-        android:fillColor="#185D3ADC"
-        android:pathData="M54,24 A30,30 0 1 1 53.9,24 Z" />
+        android:fillColor="#2279FAC2"
+        android:pathData="M54,22 A32,32 0 1 1 53.9,22 Z" />
 </vector>

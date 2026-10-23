@@ -70,14 +70,18 @@ class _ConsistencyHeatmapState extends ConsumerState<ConsistencyHeatmap> {
         children: [
           // Header Row: Title & View Selector Chips [ Week | Month | Year ]
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Consistency Heatmap',
-                style: AppTypography.titleMedium(
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ).copyWith(fontWeight: FontWeight.w700),
+              Expanded(
+                child: Text(
+                  'Consistency Heatmap',
+                  style: AppTypography.titleMedium(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ).copyWith(fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkSurfaceContainer : AppColors.surfaceContainerLow,
@@ -85,6 +89,7 @@ class _ConsistencyHeatmapState extends ConsumerState<ConsistencyHeatmap> {
                 ),
                 padding: const EdgeInsets.all(2),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildModeTab('Week', HeatmapViewMode.week, isDark),
                     _buildModeTab('Month', HeatmapViewMode.month, isDark),
@@ -156,11 +161,11 @@ class _ConsistencyHeatmapState extends ConsumerState<ConsistencyHeatmap> {
     if (_mode == HeatmapViewMode.week) {
       final startOfWeek = _referenceDate.subtract(Duration(days: _referenceDate.weekday - 1));
       final endOfWeek = startOfWeek.add(const Duration(days: 6));
-      title = '${DateFormat('MMM d').format(startOfWeek)} — ${DateFormat('MMM d, yyyy').format(endOfWeek)}';
+      title = '${DateFormat('MMM d').format(startOfWeek)} — ${DateFormat('MMM d').format(endOfWeek)}';
     } else if (_mode == HeatmapViewMode.month) {
-      title = DateFormat('MMMM yyyy').format(_referenceDate);
+      title = DateFormat('MMMM').format(_referenceDate);
     } else {
-      title = DateFormat('yyyy').format(_referenceDate);
+      title = 'Year ${DateFormat('yyyy').format(_referenceDate)}';
     }
 
     return Row(
@@ -182,11 +187,17 @@ class _ConsistencyHeatmapState extends ConsumerState<ConsistencyHeatmap> {
             });
           },
         ),
-        Text(
-          title,
-          style: AppTypography.titleMedium(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-          ).copyWith(fontSize: 14, fontWeight: FontWeight.bold),
+        Expanded(
+          child: Center(
+            child: Text(
+              title,
+              style: AppTypography.titleMedium(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              ).copyWith(fontSize: 14, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ),
         IconButton(
           icon: const Icon(Icons.chevron_right_rounded, size: 22),

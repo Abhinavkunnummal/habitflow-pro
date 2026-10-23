@@ -78,6 +78,23 @@ class ContestsNotifier extends StateNotifier<ContestsState> {
         userRank = (leaderboardData['currentUserRank'] as num?)?.toInt();
       }
 
+      // If backend returns empty leaderboard (fresh database), populate with current user
+      if (leaderboard.isEmpty) {
+        leaderboard = [
+          GlobalLeaderboardUser(
+            rank: 1,
+            id: 'u_current',
+            name: _currentUserName,
+            level: 1,
+            xp: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            isCurrentUser: true,
+          ),
+        ];
+        userRank = 1;
+      }
+
       state = state.copyWith(
         contests: contests,
         leaderboard: leaderboard,

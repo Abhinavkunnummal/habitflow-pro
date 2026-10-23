@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api/api_providers.dart';
@@ -6,6 +7,7 @@ import '../../../core/components/aurora_card.dart';
 import '../../../core/components/habit_button.dart';
 import '../../../core/components/habit_flow_logo.dart';
 import '../../../core/components/habit_text_field.dart';
+import '../../../core/services/motivation_quotes_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../models/auth_state.dart';
@@ -240,7 +242,12 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final authState = ref.watch(authProvider);
     final isLoading = authState.status == AuthStatus.authenticating;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) SystemNavigator.pop();
+      },
+      child: Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -324,9 +331,41 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Brand Logo
+              // Brand Logo & Starting Motivation
               const HabitFlowLogo(size: 46),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+              Builder(
+                builder: (context) {
+                  final q = MotivationQuotesService.getRandomQuote();
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurfaceContainer : AppColors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: q.accentColor.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(q.icon, size: 16, color: q.accentColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '“${q.quote}” — ${q.author}',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontStyle: FontStyle.italic,
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
 
               // Headline
               Text(
@@ -513,6 +552,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

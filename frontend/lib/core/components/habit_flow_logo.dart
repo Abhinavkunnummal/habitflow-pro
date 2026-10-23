@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
+/// Reusable brand logo featuring the triumphant Success Tic / Checkmark achievement emblem
 class HabitFlowLogo extends StatelessWidget {
   final double size;
   final bool showText;
@@ -19,24 +20,25 @@ class HabitFlowLogo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Brand Flame & Flow Emblem
+        // Success Tic & Achievement Crest
         Container(
           width: size,
           height: size,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [
-                Color(0xFF5D3ADC), // Violet
+                Color(0xFF006C4B), // Emerald Success
+                Color(0xFF5D3ADC), // Aurora Violet
                 Color(0xFF7657F6),
-                Color(0xFF006C4B), // Emerald
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(size * 0.3),
+            borderRadius: BorderRadius.circular(size * 0.32),
+            border: Border.all(color: AppColors.secondaryFixed.withOpacity(0.5), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.4),
+                color: AppColors.secondary.withOpacity(0.4),
                 blurRadius: 14,
                 offset: const Offset(0, 4),
               ),
@@ -45,31 +47,21 @@ class HabitFlowLogo extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Lotus Flame left wing
+              // Golden Achievement Star at top right
               Positioned(
-                left: size * 0.22,
-                top: size * 0.24,
+                top: size * 0.14,
+                right: size * 0.14,
                 child: Icon(
-                  Icons.local_fire_department_rounded,
-                  size: size * 0.55,
-                  color: AppColors.streakFire,
+                  Icons.star_rounded,
+                  size: size * 0.28,
+                  color: const Color(0xFFFFD700),
                 ),
               ),
-              // Mindful Mint drop overlay
-              Positioned(
-                right: size * 0.22,
-                bottom: size * 0.22,
-                child: Icon(
-                  Icons.water_drop_rounded,
-                  size: size * 0.48,
-                  color: AppColors.secondaryFixed,
-                ),
-              ),
-              // Center Brilliance Sparkle
+              // Triumphant Success Tick (Tic)
               Icon(
-                Icons.auto_awesome,
-                size: size * 0.32,
-                color: Colors.white,
+                Icons.check_circle_rounded,
+                size: size * 0.62,
+                color: AppColors.secondaryFixed,
               ),
             ],
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/services/motivation_quotes_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../dashboard/providers/theme_provider.dart';
@@ -17,10 +18,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+  late MotivationQuote _splashQuote;
 
   @override
   void initState() {
     super.initState();
+    // Pick a fresh motivation quote on every app start
+    _splashQuote = MotivationQuotesService.getRandomQuote();
+
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
@@ -39,7 +44,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _animController.forward();
 
     // Navigate to Onboarding or Today after splash
-    Future.delayed(const Duration(milliseconds: 2200), () {
+    Future.delayed(const Duration(milliseconds: 2600), () {
       if (!mounted) return;
       final storage = ref.read(localStorageProvider);
       if (storage.hasCompletedOnboarding) {
@@ -69,8 +74,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 3),
-              // Hero Aurora Emblem
+              const Spacer(flex: 2),
+
+              // Hero Triumphant Success Tic Emblem
               ScaleTransition(
                 scale: _scaleAnimation,
                 child: Container(
@@ -78,11 +84,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   height: 104,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryContainer],
+                      colors: [Color(0xFF006C4B), AppColors.primary, AppColors.primaryContainer],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.secondaryFixed.withOpacity(0.4), width: 2),
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.primaryContainer.withOpacity(0.55),
@@ -94,36 +101,73 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   ),
                   child: Center(
                     child: Container(
-                      width: 64,
-                      height: 64,
+                      width: 68,
+                      height: 68,
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.bolt_rounded,
-                        size: 42,
-                        color: AppColors.secondaryFixed,
+                      child: const Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_rounded,
+                            size: 46,
+                            color: AppColors.secondaryFixed,
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Icon(
+                              Icons.star_rounded,
+                              size: 16,
+                              color: Color(0xFFFFD700),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
+
               // App Name & Tagline
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: Column(
                   children: [
-                    Text(
-                      'HabitFlow Pro',
-                      style: AppTypography.displayLarge(color: Colors.white).copyWith(
-                        letterSpacing: -0.5,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'HabitFlow',
+                          style: AppTypography.displayLarge(color: Colors.white).copyWith(
+                            letterSpacing: -0.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondaryFixed,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'PRO',
+                            style: TextStyle(
+                              color: AppColors.secondary,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
-                      'Compounding Micro-Habits Everyday',
+                      'Compound Micro-Habits Everyday',
                       style: AppTypography.bodyMedium(
                         color: Colors.white.withOpacity(0.75),
                       ),
@@ -131,7 +175,75 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   ],
                 ),
               ),
+
+              const SizedBox(height: 32),
+
+              // Starting Motivation Quote Card (Animated during launch)
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: AppColors.secondaryFixed.withOpacity(0.25),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 16,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(_splashQuote.icon, size: 16, color: AppColors.secondaryFixed),
+                          const SizedBox(width: 6),
+                          Text(
+                            'STARTING MOTIVATION',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.0,
+                              color: AppColors.secondaryFixed.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '“${_splashQuote.quote}”',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          height: 1.4,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '— ${_splashQuote.author}',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.65),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               const Spacer(flex: 3),
+
               // Encrypted & Offline-Ready Status Capsule
               FadeTransition(
                 opacity: _fadeAnimation,
@@ -167,7 +279,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+
               // Subtle loading indicator
               SizedBox(
                 width: 44,

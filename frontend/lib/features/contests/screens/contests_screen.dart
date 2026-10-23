@@ -380,32 +380,95 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
 
     final leaderboard = state.leaderboard;
     if (leaderboard.isEmpty) {
-      return const Center(child: Text('No leaderboard data yet.'));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.streakFire.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.emoji_events_rounded, color: AppColors.streakFire, size: 36),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No Competitors Yet',
+                style: AppTypography.headline(
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ).copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Complete your habits today to claim the #1 spot on the leaderboard!',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodyMedium(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
-
-    final top3 = leaderboard.take(3).toList();
-    final remaining = leaderboard.skip(3).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
       children: [
-        // Podium Header for Top 3
-        if (top3.length >= 3) _buildPodium(isDark, top3),
+        // Podium Header if 3 or more users, or Champion Banner if 1-2 users
+        if (leaderboard.length >= 3)
+          _buildPodium(isDark, leaderboard.take(3).toList())
+        else
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceContainer : AppColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Text('👑', style: TextStyle(fontSize: 28)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Podium Leader: ${leaderboard.first.name}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                      ),
+                      Text(
+                        'Level ${leaderboard.first.level} • ${leaderboard.first.xp} XP • ${leaderboard.first.currentStreak}d Streak',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 20),
 
         // Section Title
         Text(
-          'COMMUNITY RANKINGS',
+          'COMMUNITY RANKINGS (${leaderboard.length})',
           style: AppTypography.labelMedium(
             color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary,
           ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.8),
         ),
         const SizedBox(height: 8),
 
-        // Rest of the participants
-        ...remaining.map((user) => _buildLeaderboardTile(isDark, user)),
+        // ALL participants are rendered cleanly
+        ...leaderboard.map((user) => _buildLeaderboardTile(isDark, user)),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Center(
           child: Text(
             'Rankings sync live from MongoDB Atlas as habits are logged.',
