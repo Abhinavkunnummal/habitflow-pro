@@ -49,7 +49,7 @@ class ProfileScreen extends ConsumerWidget {
                 ActionChip(
                   label: const Text('Render Cloud (onrender.com)', style: TextStyle(fontSize: 11)),
                   onPressed: () {
-                    urlController.text = 'https://habitflow-pro-backend.onrender.com/api/v1';
+                    urlController.text = 'https://habitflow-pro-bz24.onrender.com/api/v1';
                   },
                 ),
                 ActionChip(

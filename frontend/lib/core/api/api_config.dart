@@ -1,7 +1,7 @@
 class ApiConfig {
   static const String defaultLocalUrl = 'http://10.0.2.2:5000/api/v1';
   static const String defaultLanUrl = 'http://192.168.1.2:5000/api/v1';
-  static const String defaultProductionUrl = 'https://habitflow-pro-backend.onrender.com/api/v1';
+  static const String defaultProductionUrl = 'https://habitflow-pro-bz24.onrender.com/api/v1';
 
   // Can be configured via --dart-define=API_BASE_URL=https://...
   static const String _envBaseUrl = String.fromEnvironment(

@@ -150,7 +150,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   controller: urlController,
                   decoration: const InputDecoration(
                     labelText: 'Base URL',
-                    hintText: 'http://192.168.1.2:5000/api/v1',
+                    hintText: 'https://habitflow-pro-bz24.onrender.com/api/v1',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -168,7 +168,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                       label: const Text('Render Cloud (onrender.com)', style: TextStyle(fontSize: 11)),
                       onPressed: () {
                         setDialogState(() {
-                          urlController.text = 'https://habitflow-pro-backend.onrender.com/api/v1';
+                          urlController.text = 'https://habitflow-pro-bz24.onrender.com/api/v1';
                         });
                       },
                     ),

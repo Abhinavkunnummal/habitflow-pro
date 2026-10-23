@@ -56,9 +56,9 @@ jobs:
         working-directory: frontend
         run: |
           if [ "${{ inputs.build_mode }}" = "release" ]; then
-            flutter build apk --release
+            flutter build apk --release --dart-define=API_BASE_URL=https://habitflow-pro-bz24.onrender.com/api/v1
           else
-            flutter build apk --debug
+            flutter build apk --debug --dart-define=API_BASE_URL=https://habitflow-pro-bz24.onrender.com/api/v1
           fi
 
       - name: Find and Verify APK Output
