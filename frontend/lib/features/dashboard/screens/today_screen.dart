@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../../core/components/aurora_card.dart';
 import '../../../core/components/aurora_progress_ring.dart';
 import '../../../core/components/streak_badge.dart';
+import '../../../core/components/study_motivation_card.dart';
+import '../../../core/components/task_completion_button.dart';
 import '../../../core/components/weekly_strip.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -14,6 +16,19 @@ import '../../auth/providers/auth_provider.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
+
+  String _getTimeGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return 'Good morning';
+    } else if (hour >= 12 && hour < 17) {
+      return 'Good afternoon';
+    } else if (hour >= 17 && hour < 22) {
+      return 'Good evening';
+    } else {
+      return 'Good night';
+    }
+  }
 
   IconData _getIconData(String iconName) {
     switch (iconName) {
@@ -82,31 +97,59 @@ class TodayScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
                 child: Row(
                   children: [
-                    // Dynamic greeting wrapped in Expanded so it never overflows
+                    // Dynamic greeting with crystal-clear high-contrast visibility
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            DateFormat('EEEE, MMM d').format(selectedDate),
-                            style: AppTypography.labelMedium(
-                              color: isDark
-                                  ? AppColors.darkTextTertiary
-                                  : AppColors.textTertiary,
-                            ).copyWith(fontWeight: FontWeight.w600),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Good morning, ${ref.watch(authProvider).user?.name.split(' ').first ?? 'Alex'}',
-                            style: AppTypography.headline(
-                              color: isDark
-                                  ? AppColors.darkTextPrimary
-                                  : AppColors.textPrimary,
+                            DateFormat('EEEE, MMM d').format(selectedDate).toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              color: isDark ? AppColors.primaryFixedDim : AppColors.primary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Builder(
+                            builder: (context) {
+                              final user = ref.watch(authProvider).user;
+                              final rawName = user?.name.trim();
+                              final firstName = (rawName != null && rawName.isNotEmpty)
+                                  ? rawName.split(' ').first
+                                  : 'Champion';
+                              return Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: '${_getTimeGreeting()}, ',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? Colors.white70 : Colors.black87,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: firstName,
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        color: isDark ? Colors.white : AppColors.primary,
+                                      ),
+                                    ),
+                                    const TextSpan(
+                                      text: ' 👋',
+                                      style: TextStyle(fontSize: 18),
+                                    ),
+                                  ],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -349,6 +392,11 @@ class TodayScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+            ),
+
+            // Daily Study & Flow Motivation Card
+            const SliverToBoxAdapter(
+              child: StudyMotivationCard(),
             ),
 
             // 7-Day Horizontal Calendar Strip
@@ -602,50 +650,15 @@ class TodayScreen extends ConsumerWidget {
                                   ],
                                 ),
                               ),
-                              // Completion Checkbox Button
-                              GestureDetector(
-                                onTap: () {
+                              // Completion Checkbox Button with celebratory animation & audio feedback
+                              TaskCompletionButton(
+                                isCompleted: isCompleted,
+                                onToggle: () {
                                   logsNotifier.toggleHabitCompletion(
                                     habit.id,
                                     selectedDate,
                                   );
                                 },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: isCompleted
-                                        ? AppColors.secondaryFixed
-                                        : Colors.transparent,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: isCompleted
-                                          ? AppColors.secondaryFixed
-                                          : (isDark
-                                              ? AppColors.darkSurfaceContainerHigh
-                                              : AppColors.surfaceContainerHigh),
-                                      width: 2,
-                                    ),
-                                    boxShadow: isCompleted
-                                        ? [
-                                            BoxShadow(
-                                              color: AppColors.secondaryFixed
-                                                  .withOpacity(0.4),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ]
-                                        : null,
-                                  ),
-                                  child: isCompleted
-                                      ? const Icon(
-                                          Icons.check_rounded,
-                                          color: AppColors.secondary,
-                                          size: 22,
-                                        )
-                                      : null,
-                                ),
                               ),
                             ],
                           ),

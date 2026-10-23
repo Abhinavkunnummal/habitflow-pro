@@ -33,6 +33,26 @@ class LocalStorage {
 
   // --- Habits ---
   List<Habit> getHabits() {
+    // Migration: ensure starter habit streaks are reset to 0 once
+    final hasResetStreaks = _prefs.getBool('habitflow_streaks_reset_v2') ?? false;
+    if (!hasResetStreaks) {
+      _prefs.setBool('habitflow_streaks_reset_v2', true);
+      final raw = _prefs.getStringList(_keyHabits);
+      if (raw != null && raw.isNotEmpty) {
+        try {
+          final list = raw.map((jsonStr) => Habit.fromJson(jsonStr)).toList();
+          final resetList = list.map((h) {
+            if (h.id.startsWith('starter_') && h.streak > 1) {
+              return h.copyWith(streak: 0);
+            }
+            return h;
+          }).toList();
+          saveHabits(resetList);
+          return resetList;
+        } catch (_) {}
+      }
+    }
+
     final rawList = _prefs.getStringList(_keyHabits);
     if (rawList == null || rawList.isEmpty) {
       return _getStarterHabits();
@@ -79,9 +99,9 @@ class LocalStorage {
         colorHex: '#79FAC2', // Mint
         targetValue: 8,
         targetUnit: 'glasses',
-        streak: 14,
+        streak: 0,
         reminderTime: '07:30',
-        createdAt: now.subtract(const Duration(days: 14)),
+        createdAt: now,
       ),
       Habit(
         id: 'starter_reading',
@@ -93,9 +113,9 @@ class LocalStorage {
         colorHex: '#5D3ADC', // Violet
         targetValue: 20,
         targetUnit: 'pages',
-        streak: 7,
+        streak: 0,
         reminderTime: '13:00',
-        createdAt: now.subtract(const Duration(days: 7)),
+        createdAt: now,
       ),
       Habit(
         id: 'starter_workout',
@@ -107,9 +127,9 @@ class LocalStorage {
         colorHex: '#006C4B', // Emerald
         targetValue: 30,
         targetUnit: 'mins',
-        streak: 5,
+        streak: 0,
         reminderTime: '17:30',
-        createdAt: now.subtract(const Duration(days: 5)),
+        createdAt: now,
       ),
       Habit(
         id: 'starter_journal',
@@ -121,9 +141,9 @@ class LocalStorage {
         colorHex: '#844D2A', // Terracotta
         targetValue: 1,
         targetUnit: 'session',
-        streak: 9,
+        streak: 0,
         reminderTime: '21:30',
-        createdAt: now.subtract(const Duration(days: 9)),
+        createdAt: now,
       ),
     ];
   }

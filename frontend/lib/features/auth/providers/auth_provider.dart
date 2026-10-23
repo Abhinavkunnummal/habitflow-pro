@@ -192,9 +192,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       email: email ?? 'local@habitflow.pro',
       name: name ?? 'Habit Explorer',
       level: 1,
-      xp: 100,
-      currentStreak: 2,
-      longestStreak: 5,
+      xp: 0,
+      currentStreak: 0,
+      longestStreak: 0,
     );
     _sessionStorage.saveUser(offlineUser.toMap());
     state = state.copyWith(
@@ -208,19 +208,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void signInDemoUser() {
     final demoUser = const UserModel(
-      id: 'usr_demo_alex',
-      email: 'alex@habitflow.pro',
-      name: 'Alex Rivera',
-      level: 6,
-      xp: 1450,
-      currentStreak: 12,
-      longestStreak: 24,
+      id: 'usr_demo_pioneer',
+      email: 'pioneer@habitflow.pro',
+      name: 'Flow Pioneer',
+      level: 1,
+      xp: 0,
+      currentStreak: 0,
+      longestStreak: 0,
     );
     _sessionStorage.saveUser(demoUser.toMap());
     state = state.copyWith(
       status: AuthStatus.authenticated,
       user: demoUser,
-      token: 'demo_token_alex_123',
+      token: 'demo_token_flow_123',
       isOfflineMode: true,
       clearError: true,
     );

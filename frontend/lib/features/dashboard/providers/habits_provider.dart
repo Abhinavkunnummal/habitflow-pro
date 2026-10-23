@@ -29,6 +29,46 @@ final habitsProvider = StateNotifierProvider<HabitsNotifier, List<Habit>>((ref) 
   return HabitsNotifier(storage, repository, ref);
 });
 
+/// Pure algorithm to compute consecutive calendar day streak from completion logs
+int calculateStreakFromLogs(String habitId, List<HabitLog> logs, DateTime referenceDate) {
+  final completedDates = logs
+      .where((l) => l.habitId == habitId && l.completed)
+      .map((l) => l.date)
+      .toSet();
+
+  if (completedDates.isEmpty) return 0;
+
+  final refDateStr = DateFormat('yyyy-MM-dd').format(referenceDate);
+  final yesterdayStr = DateFormat('yyyy-MM-dd').format(
+    referenceDate.subtract(const Duration(days: 1)),
+  );
+
+  int streak = 0;
+  DateTime checkDate;
+
+  if (completedDates.contains(refDateStr)) {
+    streak = 1;
+    checkDate = referenceDate.subtract(const Duration(days: 1));
+  } else if (completedDates.contains(yesterdayStr)) {
+    streak = 1;
+    checkDate = referenceDate.subtract(const Duration(days: 2));
+  } else {
+    return 0;
+  }
+
+  while (true) {
+    final checkDateStr = DateFormat('yyyy-MM-dd').format(checkDate);
+    if (completedDates.contains(checkDateStr)) {
+      streak += 1;
+      checkDate = checkDate.subtract(const Duration(days: 1));
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
 class HabitsNotifier extends StateNotifier<List<Habit>> {
   final LocalStorage _storage;
   final HabitRepository _repository;
@@ -40,7 +80,13 @@ class HabitsNotifier extends StateNotifier<List<Habit>> {
   }
 
   void _loadLocalHabits() {
-    state = _storage.getHabits();
+    final habits = _storage.getHabits();
+    final logs = _storage.getLogs();
+    final syncedHabits = habits.map((h) {
+      final actualStreak = calculateStreakFromLogs(h.id, logs, DateTime.now());
+      return h.copyWith(streak: actualStreak);
+    }).toList();
+    state = syncedHabits;
   }
 
   void _listenAuth() {
@@ -212,14 +258,12 @@ class HabitLogsNotifier extends StateNotifier<List<HabitLog>> {
     state = updatedLogs;
     await _storage.saveLogs(updatedLogs);
 
-    // Optimistically update habit streak locally
+    // Optimistically update habit streak locally based on consecutive days
     final habits = _ref.read(habitsProvider);
     final habitIndex = habits.indexWhere((h) => h.id == habitId);
     if (habitIndex >= 0) {
       final habit = habits[habitIndex];
-      final newStreak = willBeCompleted
-          ? habit.streak + 1
-          : (habit.streak > 0 ? habit.streak - 1 : 0);
+      final newStreak = calculateStreakFromLogs(habitId, updatedLogs, DateTime.now());
       await _ref.read(habitsProvider.notifier).updateHabit(
             habit.copyWith(streak: newStreak),
           );

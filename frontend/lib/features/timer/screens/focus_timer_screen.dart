@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/components/aurora_card.dart';
+import '../../../core/services/audio_feedback_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 
@@ -45,6 +46,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
         } else {
           _timer?.cancel();
           setState(() => _isRunning = false);
+          AudioFeedbackService.playTimerAlarm();
           _showSessionCompleteModal();
         }
       });
@@ -71,15 +73,91 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
   void _showSessionCompleteModal() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.darkSurface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Focus Session Done! 🎉', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Great discipline. +50 XP and 25 minutes logged towards your daily target.',
-          style: TextStyle(color: Colors.white70),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.secondaryFixed.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.notifications_active_rounded, color: AppColors.secondaryFixed, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Session Complete! 🔔',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Unbroken flow session logged. +50 XP and consistency recorded.',
+              style: TextStyle(color: Colors.white70, fontSize: 13.5),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.darkSurfaceContainer,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.secondaryFixed.withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.alarm_rounded, color: AppColors.secondaryFixed, size: 16),
+                      SizedBox(width: 6),
+                      Text(
+                        'Scheduled Next Step Reminder',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Rest your eyes for 5 minutes before your next deep work sprint.',
+                    style: TextStyle(color: Colors.white60, fontSize: 11.5),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      AudioFeedbackService.playReminderChime();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('5-minute rest reminder scheduled! ☕')),
+                      );
+                      Navigator.pop(context);
+                      _setPreset(5);
+                      _toggleTimer();
+                    },
+                    icon: const Icon(Icons.snooze_rounded, size: 16, color: AppColors.secondaryFixed),
+                    label: const Text('Start 5m Break Reminder', style: TextStyle(color: AppColors.secondaryFixed, fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.secondaryFixed.withOpacity(0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Dismiss', style: TextStyle(color: Colors.white54)),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
@@ -88,8 +166,9 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.secondaryFixed,
               foregroundColor: AppColors.secondary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Collect Reward'),
+            child: const Text('Collect +50 XP Reward', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

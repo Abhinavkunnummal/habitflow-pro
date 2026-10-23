@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/components/aurora_card.dart';
 import '../../../core/components/habit_button.dart';
 import '../../../core/components/habit_text_field.dart';
+import '../../../core/services/audio_feedback_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../dashboard/models/habit.dart';
@@ -28,6 +29,7 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
   String _targetUnit = 'times';
   String _reminderTime = '08:00';
   bool _reminderEnabled = true;
+  final Set<int> _selectedDays = {1, 2, 3, 4, 5, 6, 7}; // 1 = Mon, 7 = Sun
 
   final List<String> _categories = [
     'Morning',
@@ -398,6 +400,166 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
                         ),
                       ],
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Reminders & Scheduled Days Section
+              AuroraCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.notifications_active_rounded, color: AppColors.primary, size: 22),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Daily & Future Reminders',
+                              style: AppTypography.titleMedium(
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ).copyWith(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: _reminderEnabled,
+                          activeColor: AppColors.secondaryFixed,
+                          onChanged: (val) => setState(() => _reminderEnabled = val),
+                        ),
+                      ],
+                    ),
+                    if (_reminderEnabled) ...[
+                      const SizedBox(height: 12),
+                      const Divider(height: 1),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Reminder Alert Time',
+                                style: AppTypography.labelMedium(
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _reminderTime,
+                                style: AppTypography.headline(
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ).copyWith(fontSize: 18),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                tooltip: 'Test Pleasant Chime',
+                                icon: const Icon(Icons.volume_up_rounded, color: AppColors.primary),
+                                onPressed: () {
+                                  AudioFeedbackService.playReminderChime();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Playing pleasant reminder chime 🔔'),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                              ),
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.access_time_rounded, size: 16),
+                                label: const Text('Change Time'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: isDark ? Colors.white : AppColors.primary,
+                                  side: BorderSide(
+                                    color: isDark ? AppColors.darkSurfaceContainerHigh : AppColors.surfaceContainerHigh,
+                                  ),
+                                ),
+                                onPressed: () async {
+                                  final parts = _reminderTime.split(':');
+                                  final initialHour = int.tryParse(parts[0]) ?? 8;
+                                  final initialMin = int.tryParse(parts[1]) ?? 0;
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay(hour: initialHour, minute: initialMin),
+                                  );
+                                  if (picked != null) {
+                                    final hourStr = picked.hour.toString().padLeft(2, '0');
+                                    final minStr = picked.minute.toString().padLeft(2, '0');
+                                    setState(() => _reminderTime = '$hourStr:$minStr');
+                                    AudioFeedbackService.playReminderChime();
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Scheduled Active Days',
+                        style: AppTypography.labelMedium(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        ).copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          (day: 1, label: 'M'),
+                          (day: 2, label: 'T'),
+                          (day: 3, label: 'W'),
+                          (day: 4, label: 'T'),
+                          (day: 5, label: 'F'),
+                          (day: 6, label: 'S'),
+                          (day: 7, label: 'S'),
+                        ].map((d) {
+                          final isSelected = _selectedDays.contains(d.day);
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (isSelected) {
+                                  if (_selectedDays.length > 1) {
+                                    _selectedDays.remove(d.day);
+                                  }
+                                } else {
+                                  _selectedDays.add(d.day);
+                                }
+                              });
+                            },
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : (isDark
+                                        ? AppColors.darkSurfaceContainerHigh
+                                        : AppColors.surfaceContainerHigh),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  d.label,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : (isDark ? Colors.white60 : Colors.black54),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ],
                 ),
               ),

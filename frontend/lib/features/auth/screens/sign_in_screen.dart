@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_providers.dart';
 import '../../../core/components/aurora_card.dart';
 import '../../../core/components/habit_button.dart';
+import '../../../core/components/habit_flow_logo.dart';
 import '../../../core/components/habit_text_field.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -321,7 +322,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+
+              // Brand Logo
+              const HabitFlowLogo(size: 46),
+              const SizedBox(height: 20),
 
               // Headline
               Text(

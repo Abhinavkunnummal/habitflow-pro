@@ -242,7 +242,7 @@ export class ContestService {
       .sort({ xp: -1, currentStreak: -1 })
       .limit(50);
 
-    let entries: LeaderboardUserEntry[] = users.map((u, idx) => ({
+    const entries: LeaderboardUserEntry[] = users.map((u, idx) => ({
       rank: idx + 1,
       id: u._id.toString(),
       name: u.name,
@@ -253,45 +253,6 @@ export class ContestService {
       longestStreak: u.longestStreak || 0,
       isCurrentUser: currentUserId ? u._id.toString() === currentUserId : false,
     }));
-
-    // If few users registered yet, seed high-energy community competitors for vibrant display
-    if (entries.length < 5) {
-      const mockChallengers = [
-        { name: 'Elena Rostova', level: 9, xp: 2850, currentStreak: 21, longestStreak: 30 },
-        { name: 'Marcus Chen', level: 8, xp: 2240, currentStreak: 18, longestStreak: 25 },
-        { name: 'Sarah Jenkins', level: 7, xp: 1890, currentStreak: 14, longestStreak: 19 },
-        { name: 'Liam Vance', level: 5, xp: 1210, currentStreak: 9, longestStreak: 15 },
-        { name: 'Aria Thorne', level: 4, xp: 950, currentStreak: 7, longestStreak: 12 },
-      ];
-
-      for (let i = 0; i < mockChallengers.length; i++) {
-        const mc = mockChallengers[i];
-        if (!entries.some((e) => e.name === mc.name)) {
-          entries.push({
-            rank: 0,
-            id: `challenger_${i + 1}`,
-            name: mc.name,
-            level: mc.level,
-            xp: mc.xp,
-            currentStreak: mc.currentStreak,
-            longestStreak: mc.longestStreak,
-            isCurrentUser: false,
-          });
-        }
-      }
-
-      // Re-sort combined list
-      entries.sort((a, b) => {
-        if (b.xp !== a.xp) return b.xp - a.xp;
-        return b.currentStreak - a.currentStreak;
-      });
-
-      // Assign proper ranks
-      entries = entries.map((entry, index) => ({
-        ...entry,
-        rank: index + 1,
-      }));
-    }
 
     const currentEntry = entries.find((e) => e.isCurrentUser);
 
