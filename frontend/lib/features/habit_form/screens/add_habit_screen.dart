@@ -23,6 +23,7 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
   final _descController = TextEditingController();
   String _selectedCategory = 'Morning';
   String _habitType = 'build'; // 'build' or 'quit'
+  String _durationType = 'daily'; // 'today_only', 'daily', '7_days', '21_days', '30_days'
   String _selectedIcon = 'water_drop';
   String _selectedColor = '#79FAC2';
   int _targetValue = 1;
@@ -91,6 +92,7 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
       targetValue: _targetValue,
       targetUnit: _targetUnit,
       reminderTime: _reminderEnabled ? _reminderTime : null,
+      durationType: _durationType,
       createdAt: DateTime.now(),
     );
 
@@ -109,88 +111,146 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Add New Habit',
-          style: AppTypography.headline(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/today');
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Add New Habit',
+            style: AppTypography.headline(
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/today');
+              }
+            },
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/today'),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Build vs Quit Habit Selector
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _habitType = 'build'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _habitType == 'build'
-                              ? AppColors.primary
-                              : (isDark
-                                  ? AppColors.darkSurfaceContainer
-                                  : AppColors.surfaceContainerLow),
-                          borderRadius: BorderRadius.circular(9999),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Build Habit',
-                            style: AppTypography.button(
-                              color: _habitType == 'build'
-                                  ? Colors.white
-                                  : (isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.textSecondary),
-                            ).copyWith(fontSize: 14),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Build vs Quit Habit Selector
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _habitType = 'build'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _habitType == 'build'
+                                ? AppColors.primary
+                                : (isDark
+                                    ? AppColors.darkSurfaceContainer
+                                    : AppColors.surfaceContainerLow),
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Build Habit',
+                              style: AppTypography.button(
+                                color: _habitType == 'build'
+                                    ? Colors.white
+                                    : (isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.textSecondary),
+                              ).copyWith(fontSize: 14),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _habitType = 'quit'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _habitType == 'quit'
-                              ? AppColors.streakFire
-                              : (isDark
-                                  ? AppColors.darkSurfaceContainer
-                                  : AppColors.surfaceContainerLow),
-                          borderRadius: BorderRadius.circular(9999),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Quit Habit',
-                            style: AppTypography.button(
-                              color: _habitType == 'quit'
-                                  ? Colors.white
-                                  : (isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.textSecondary),
-                            ).copyWith(fontSize: 14),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _habitType = 'quit'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _habitType == 'quit'
+                                ? AppColors.streakFire
+                                : (isDark
+                                    ? AppColors.darkSurfaceContainer
+                                    : AppColors.surfaceContainerLow),
+                            borderRadius: BorderRadius.circular(9999),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Quit Habit',
+                              style: AppTypography.button(
+                                color: _habitType == 'quit'
+                                    ? Colors.white
+                                    : (isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.textSecondary),
+                              ).copyWith(fontSize: 14),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Routine Duration & Schedule Horizon
+                Text(
+                  'Schedule Horizon & Duration',
+                  style: AppTypography.titleMedium(
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ).copyWith(fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    (type: 'today_only', label: 'Today Only 🎯'),
+                    (type: 'daily', label: 'Daily (Ongoing) 🔄'),
+                    (type: '7_days', label: '7-Day Sprint ⚡'),
+                    (type: '21_days', label: '21-Day Habit 🏆'),
+                    (type: '30_days', label: '30-Day Master 🥇'),
+                  ].map((item) {
+                    final isSelected = _durationType == item.type;
+                    return ChoiceChip(
+                      label: Text(item.label),
+                      selected: isSelected,
+                      selectedColor: AppColors.secondaryFixed,
+                      backgroundColor: isDark
+                          ? AppColors.darkSurfaceContainer
+                          : AppColors.surfaceContainerLow,
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? AppColors.secondary
+                            : (isDark ? Colors.white70 : Colors.black87),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12.5,
+                      ),
+                      shape: const StadiumBorder(),
+                      onSelected: (selected) {
+                        if (selected) setState(() => _durationType = item.type);
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
 
               // Title Field
               HabitTextField(
@@ -594,6 +654,7 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }

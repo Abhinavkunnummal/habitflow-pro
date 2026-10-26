@@ -14,6 +14,7 @@ class Habit {
   final String? reminderTime;
   final bool streakShieldEnabled;
   final bool isArchived;
+  final String durationType; // 'daily', 'today_only', '7_days', '21_days', '30_days'
   final DateTime createdAt;
 
   const Habit({
@@ -30,6 +31,7 @@ class Habit {
     this.reminderTime,
     this.streakShieldEnabled = false,
     this.isArchived = false,
+    this.durationType = 'daily',
     required this.createdAt,
   });
 
@@ -47,6 +49,7 @@ class Habit {
     String? reminderTime,
     bool? streakShieldEnabled,
     bool? isArchived,
+    String? durationType,
     DateTime? createdAt,
   }) {
     return Habit(
@@ -63,6 +66,7 @@ class Habit {
       reminderTime: reminderTime ?? this.reminderTime,
       streakShieldEnabled: streakShieldEnabled ?? this.streakShieldEnabled,
       isArchived: isArchived ?? this.isArchived,
+      durationType: durationType ?? this.durationType,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -82,6 +86,7 @@ class Habit {
       'reminderTime': reminderTime,
       'streakShieldEnabled': streakShieldEnabled,
       'isArchived': isArchived,
+      'durationType': durationType,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -101,6 +106,7 @@ class Habit {
       reminderTime: map['reminderTime'],
       streakShieldEnabled: map['streakShieldEnabled'] ?? false,
       isArchived: map['isArchived'] ?? false,
+      durationType: map['durationType'] ?? 'daily',
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
           : DateTime.now(),

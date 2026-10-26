@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/components/aurora_card.dart';
 import '../../../core/components/tree_growth_animation.dart';
@@ -7,15 +8,23 @@ import '../../../core/services/audio_feedback_service.dart';
 import '../../../core/storage/local_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../dashboard/providers/habits_provider.dart';
 
-class FocusTimerScreen extends StatefulWidget {
-  const FocusTimerScreen({super.key});
+class FocusTimerScreen extends ConsumerStatefulWidget {
+  final String? linkedHabitId;
+  final String? linkedHabitTitle;
+
+  const FocusTimerScreen({
+    super.key,
+    this.linkedHabitId,
+    this.linkedHabitTitle,
+  });
 
   @override
-  State<FocusTimerScreen> createState() => _FocusTimerScreenState();
+  ConsumerState<FocusTimerScreen> createState() => _FocusTimerScreenState();
 }
 
-class _FocusTimerScreenState extends State<FocusTimerScreen>
+class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
     with WidgetsBindingObserver {
   int _initialSeconds = 25 * 60;
   int _remainingSeconds = 25 * 60;
@@ -146,6 +155,15 @@ class _FocusTimerScreenState extends State<FocusTimerScreen>
         // Record focus minutes into learning analytics
         final completedMins = _initialSeconds ~/ 60;
         _storage?.recordFocusSession(completedMins);
+
+        // Automatically complete the linked routine (e.g. Deep Reading)
+        if (widget.linkedHabitId != null) {
+          final logsNotifier = ref.read(habitLogsProvider.notifier);
+          if (!logsNotifier.isCompleted(widget.linkedHabitId!, DateTime.now())) {
+            logsNotifier.toggleHabitCompletion(widget.linkedHabitId!, DateTime.now());
+          }
+        }
+
         AudioFeedbackService.playTimerAlarm();
         _showSessionCompleteModal();
       }
@@ -339,6 +357,34 @@ class _FocusTimerScreenState extends State<FocusTimerScreen>
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 6),
+            if (widget.linkedHabitTitle != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryFixed.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.secondaryFixed.withOpacity(0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: AppColors.secondaryFixed, size: 20),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        '${widget.linkedHabitTitle} marked completed!',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             // Fully Bloomed Majestic Tree Animation
             const Center(
               child: TreeGrowthAnimation(
@@ -500,6 +546,32 @@ class _FocusTimerScreenState extends State<FocusTimerScreen>
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
             child: Column(
               children: [
+                if (widget.linkedHabitTitle != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(9999),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.menu_book_rounded, color: AppColors.secondaryFixed, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Routine: ${widget.linkedHabitTitle}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 // Presets (Horizontally Scrollable / Overflow-proof)
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -694,6 +766,15 @@ class _FocusTimerScreenState extends State<FocusTimerScreen>
                     onPressed: () {
                       _storage?.clearFocusTimerState();
                       _storage?.recordFocusSession(_initialSeconds ~/ 60);
+
+                      // Automatically complete linked habit if active
+                      if (widget.linkedHabitId != null) {
+                        final logsNotifier = ref.read(habitLogsProvider.notifier);
+                        if (!logsNotifier.isCompleted(widget.linkedHabitId!, DateTime.now())) {
+                          logsNotifier.toggleHabitCompletion(widget.linkedHabitId!, DateTime.now());
+                        }
+                      }
+
                       context.go('/celebration');
                     },
                     icon: const Icon(Icons.skip_next_rounded, color: Colors.white70, size: 28),
@@ -707,5 +788,4 @@ class _FocusTimerScreenState extends State<FocusTimerScreen>
       ),
     );
   }
-}
 }

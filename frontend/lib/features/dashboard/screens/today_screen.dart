@@ -90,6 +90,13 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
     final filteredHabits = habits.where((h) {
       if (h.isArchived) return false;
+      if (h.durationType == 'today_only') {
+        final isCreatedDay = h.createdAt.year == selectedDate.year &&
+            h.createdAt.month == selectedDate.month &&
+            h.createdAt.day == selectedDate.day;
+        final isCompletedOnDay = logsNotifier.isCompleted(h.id, selectedDate);
+        if (!isCreatedDay && !isCompletedOnDay) return false;
+      }
       if (selectedCategory == 'All') return true;
       return h.category.toLowerCase().contains(selectedCategory.toLowerCase());
     }).toList();
@@ -402,6 +409,43 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                                     ),
                                   ),
                                 ),
+                                InkWell(
+                                  onTap: () => context.go('/vision-board'),
+                                  borderRadius: BorderRadius.circular(9999),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2563EB).withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(9999),
+                                      border: Border.all(
+                                        color: const Color(0xFF2563EB).withOpacity(0.25),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.auto_awesome_rounded,
+                                          size: 13,
+                                          color: Color(0xFF2563EB),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Vision 🌟',
+                                          style: AppTypography.labelMedium(
+                                            color: const Color(0xFF2563EB),
+                                          ).copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -664,6 +708,43 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                                             color: AppColors.streakFire,
                                           ).copyWith(fontWeight: FontWeight.w700),
                                         ),
+                                        if (habit.durationType == 'today_only') ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.secondary.withOpacity(0.12),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '🎯 Today Only',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark ? AppColors.secondaryFixedDim : AppColors.secondary,
+                                              ),
+                                            ),
+                                          ),
+                                        ] else if (habit.durationType != 'daily' && habit.durationType.isNotEmpty) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary.withOpacity(0.12),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              habit.durationType == '7_days'
+                                                  ? '⚡ 7-Day'
+                                                  : (habit.durationType == '21_days' ? '🏆 21-Day' : '🥇 30-Day'),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark ? AppColors.primaryFixedDim : AppColors.primary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ],

@@ -19,6 +19,7 @@ import '../../features/splash/screens/splash_screen.dart';
 import '../../features/timer/screens/focus_timer_screen.dart';
 import '../../features/contests/screens/contests_screen.dart';
 import '../../features/weekly_review/screens/weekly_review_screen.dart';
+import '../../features/vision_board/screens/vision_board_screen.dart';
 import 'main_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -64,7 +65,14 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/timer',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const FocusTimerScreen(),
+      builder: (context, state) {
+        final habitId = state.uri.queryParameters['habitId'];
+        final habitTitle = state.uri.queryParameters['habitTitle'];
+        return FocusTimerScreen(
+          linkedHabitId: habitId,
+          linkedHabitTitle: habitTitle,
+        );
+      },
     ),
     GoRoute(
       path: '/search',
@@ -100,6 +108,11 @@ final appRouter = GoRouter(
       path: '/contests',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const ContestsScreen(),
+    ),
+    GoRoute(
+      path: '/vision-board',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const VisionBoardScreen(),
     ),
 
     // Stateful Navigation Shell for 5 Tabs
