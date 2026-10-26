@@ -53,9 +53,25 @@ class AppTypography {
         color: color,
       );
 
+  static TextStyle bodySmall({Color color = AppColors.textSecondary}) =>
+      GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        height: 1.4,
+        color: color,
+      );
+
   static TextStyle labelMedium({Color color = AppColors.textTertiary}) =>
       GoogleFonts.inter(
         fontSize: 12,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.2,
+        color: color,
+      );
+
+  static TextStyle labelSmall({Color color = AppColors.textTertiary}) =>
+      GoogleFonts.inter(
+        fontSize: 11,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.2,
         color: color,

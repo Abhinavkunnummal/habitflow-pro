@@ -14,6 +14,7 @@ class AppColors {
   // Secondary: Forest Emerald & Fresh Mint
   static const Color secondary = Color(0xFF006C4B);
   static const Color secondaryFixed = Color(0xFF79FAC2); // Brand Mint
+  static const Color secondaryFixedDim = Color(0xFF5BDDA7);
   static const Color secondaryContainer = Color(0xFF5BDDA7);
   static const Color secondaryLight = Color(0xFFE3FBEF);
 

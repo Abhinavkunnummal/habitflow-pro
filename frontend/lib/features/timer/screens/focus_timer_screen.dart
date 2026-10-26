@@ -786,6 +786,7 @@ class _FocusTimerScreenState extends ConsumerState<FocusTimerScreen>
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
