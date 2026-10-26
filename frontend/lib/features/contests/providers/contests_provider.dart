@@ -222,14 +222,6 @@ class ContestsNotifier extends StateNotifier<ContestsState> {
     );
   }
 
-    state = state.copyWith(
-      contests: offlineContests,
-      leaderboard: offlineLeaderboard,
-      currentUserRank: 1,
-      isLoading: false,
-    );
-  }
-
   Future<void> joinContest(String contestId) async {
     try {
       await _apiClient.post('/contests/$contestId/join');

@@ -30,6 +30,9 @@ class AudioFeedbackService {
     }
   }
 
+  /// Alias for playTaskComplete
+  static Future<void> playTaskCompleteSound() => playTaskComplete();
+
   /// Warm alarm gong played when a focus timer countdown finishes
   static Future<void> playTimerAlarm() async {
     _init();

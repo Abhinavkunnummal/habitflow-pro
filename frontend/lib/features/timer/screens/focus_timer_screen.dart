@@ -290,7 +290,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen>
               ),
               onPressed: () {
                 Navigator.pop(ctx);
-                AudioFeedbackService.playTaskCompleteSound();
+                AudioFeedbackService.playTaskComplete();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Focus verified! +15 Focus Momentum points 🎯'),
