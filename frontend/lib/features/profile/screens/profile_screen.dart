@@ -490,8 +490,7 @@ class ProfileScreen extends ConsumerWidget {
               children: days.map((d) {
                 final mins = weeklyMinutes[d.day] ?? 0;
                 final isToday = d.day == todayWeekday;
-                final barRatio = (mins / maxMins).clamp(0.08, 1.0);
-                final barHeight = 72.0 * barRatio;
+                final barHeight = mins > 0 ? (72.0 * (mins / maxMins)).clamp(10.0, 72.0) : 4.0;
 
                 return Expanded(
                   child: Column(
@@ -512,18 +511,23 @@ class ProfileScreen extends ConsumerWidget {
                         width: 18,
                         height: barHeight,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: isToday
-                                ? [AppColors.primary, AppColors.secondaryFixed]
-                                : [
-                                    AppColors.primary.withOpacity(0.6),
-                                    AppColors.primaryContainer.withOpacity(0.4),
-                                  ],
-                          ),
+                          gradient: mins > 0
+                              ? LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: isToday
+                                      ? [AppColors.primary, AppColors.secondaryFixed]
+                                      : [
+                                          AppColors.primary.withOpacity(0.6),
+                                          AppColors.primaryContainer.withOpacity(0.4),
+                                        ],
+                                )
+                              : null,
+                          color: mins > 0
+                              ? null
+                              : (isDark ? AppColors.darkSurfaceContainerHigh : AppColors.surfaceContainerHigh),
                           borderRadius: BorderRadius.circular(6),
-                          boxShadow: isToday
+                          boxShadow: (isToday && mins > 0)
                               ? [
                                   BoxShadow(
                                     color: AppColors.secondaryFixed.withOpacity(0.35),
@@ -583,7 +587,7 @@ class ProfileScreen extends ConsumerWidget {
                   const Icon(Icons.verified_rounded, size: 14, color: AppColors.secondaryFixed),
                   const SizedBox(width: 4),
                   Text(
-                    'Top 5% Consistency',
+                    totalMins > 0 ? 'Logged Focus Curve' : 'No Sessions Yet',
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,

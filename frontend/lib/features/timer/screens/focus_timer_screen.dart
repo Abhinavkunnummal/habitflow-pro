@@ -443,69 +443,91 @@ class _FocusTimerScreenState extends State<FocusTimerScreen>
         ? ((_initialSeconds - _remainingSeconds) / _initialSeconds).clamp(0.0, 1.0)
         : 0.0;
 
-    return Scaffold(
-      backgroundColor: AppColors.darkBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => context.go('/today'),
-        ),
-        title: Text(
-          'Focus Session',
-          style: AppTypography.headline(color: Colors.white),
-        ),
-        actions: [
-          IconButton(
-            tooltip: _retentionCheckEnabled ? 'Disable Focus Check-Ins' : 'Enable Focus Check-Ins',
-            icon: Icon(
-              _retentionCheckEnabled ? Icons.psychology_rounded : Icons.psychology_outlined,
-              color: _retentionCheckEnabled ? AppColors.secondaryFixed : Colors.white38,
-            ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _persistCurrentTimerState();
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/today');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.darkBackground,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
             onPressed: () {
-              setState(() => _retentionCheckEnabled = !_retentionCheckEnabled);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(_retentionCheckEnabled
-                      ? 'Periodic 10m Focus Check-Ins Enabled 🧠'
-                      : 'Focus Check-Ins Paused'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
+              _persistCurrentTimerState();
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/today');
+              }
             },
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-          child: Column(
-            children: [
-              // Presets
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: _presetMinutes.map((mins) {
-                  final isSelected = _initialSeconds == mins * 60;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3.0),
-                    child: ChoiceChip(
-                      label: Text('${mins}m'),
-                      selected: isSelected,
-                      selectedColor: AppColors.primaryContainer,
-                      backgroundColor: AppColors.darkSurfaceContainer,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : Colors.white70,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12.5,
-                      ),
-                      shape: const StadiumBorder(),
-                      onSelected: (_) => _setPreset(mins),
-                    ),
-                  );
-                }).toList(),
+          title: Text(
+            'Focus Session',
+            style: AppTypography.headline(color: Colors.white),
+          ),
+          actions: [
+            IconButton(
+              tooltip: _retentionCheckEnabled ? 'Disable Focus Check-Ins' : 'Enable Focus Check-Ins',
+              icon: Icon(
+                _retentionCheckEnabled ? Icons.psychology_rounded : Icons.psychology_outlined,
+                color: _retentionCheckEnabled ? AppColors.secondaryFixed : Colors.white38,
               ),
-              const SizedBox(height: 16),
+              onPressed: () {
+                setState(() => _retentionCheckEnabled = !_retentionCheckEnabled);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_retentionCheckEnabled
+                        ? 'Periodic 10m Focus Check-Ins Enabled 🧠'
+                        : 'Focus Check-Ins Paused'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+            child: Column(
+              children: [
+                // Presets (Horizontally Scrollable / Overflow-proof)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: _presetMinutes.map((mins) {
+                      final isSelected = _initialSeconds == mins * 60;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: ChoiceChip(
+                          label: Text('${mins}m'),
+                          selected: isSelected,
+                          selectedColor: AppColors.primaryContainer,
+                          backgroundColor: AppColors.darkSurfaceContainer,
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.5,
+                          ),
+                          shape: const StadiumBorder(),
+                          onSelected: (_) => _setPreset(mins),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
 
               // Animated Focus Tree Growing Component
               TreeGrowthAnimation(
@@ -570,10 +592,14 @@ class _FocusTimerScreenState extends State<FocusTimerScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Ambient Soundscape',
-                          style: AppTypography.labelMedium(color: Colors.white70),
+                        Expanded(
+                          child: Text(
+                            'Ambient Soundscape',
+                            style: AppTypography.labelMedium(color: Colors.white70),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Row(
                           children: [
                             const Icon(Icons.check_circle_outline, size: 14, color: AppColors.secondaryFixed),
@@ -681,4 +707,5 @@ class _FocusTimerScreenState extends State<FocusTimerScreen>
       ),
     );
   }
+}
 }

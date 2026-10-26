@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Habit } from '../models/Habit';
 import { HabitLog, IHabitLog } from '../models/HabitLog';
+import { User } from '../models/User';
 import { AppError } from '../middleware/errorHandler';
 import { StreakService } from './streak.service';
 import { RecordCompletionInput, HabitCompletionsQuery } from '../validators/completion.validator';
@@ -57,6 +58,24 @@ export class CompletionService {
     // 4. Update habit streak
     habit.streak = streakResult.currentStreak;
     await habit.save();
+
+    // 5. Update user current streak, longest streak, and XP in MongoDB Atlas
+    try {
+      const user = await User.findById(userId);
+      if (user) {
+        if (input.completed) {
+          user.currentStreak = Math.max(user.currentStreak || 0, streakResult.currentStreak);
+          user.longestStreak = Math.max(user.longestStreak || 0, user.currentStreak);
+          user.xp = (user.xp || 0) + 25;
+          user.level = 1 + Math.floor(user.xp / 200);
+        } else {
+          const userHabits = await Habit.find({ userId: user._id, isArchived: false });
+          const maxStreak = userHabits.reduce((max, h) => Math.max(max, h.streak || 0), 0);
+          user.currentStreak = maxStreak;
+        }
+        await user.save();
+      }
+    } catch (_) {}
 
     return {
       log: log.toJSON(),

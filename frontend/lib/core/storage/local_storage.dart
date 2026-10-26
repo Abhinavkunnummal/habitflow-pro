@@ -140,19 +140,10 @@ class LocalStorage {
   Map<int, int> getWeeklyFocusMinutes() {
     // Map of day of week (1 = Monday, 7 = Sunday) to total minutes focused
     final now = DateTime.now();
-    // Monday of current week
-    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final monday = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
     final Map<int, int> weeklyMinutes = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
 
-    // Default starter momentum data so graph looks inspiring and active from day 1
-    weeklyMinutes[1] = 45;
-    weeklyMinutes[2] = 60;
-    weeklyMinutes[3] = 30;
-    weeklyMinutes[4] = 75;
-    weeklyMinutes[5] = 40;
-    weeklyMinutes[6] = 50;
-    weeklyMinutes[7] = 65;
-
+    // 1. Exact minutes from actual recorded focus timer sessions
     final rawList = _prefs.getStringList(_keyFocusSessions);
     if (rawList != null && rawList.isNotEmpty) {
       for (final entry in rawList) {
@@ -162,13 +153,47 @@ class LocalStorage {
           final mins = int.tryParse(parts[1]) ?? 0;
           try {
             final entryDate = DateTime.parse(dateStr);
-            final diffDays = entryDate.difference(DateTime(monday.year, monday.month, monday.day)).inDays;
+            final dayOnly = DateTime(entryDate.year, entryDate.month, entryDate.day);
+            final diffDays = dayOnly.difference(monday).inDays;
             if (diffDays >= 0 && diffDays < 7) {
               final weekday = entryDate.weekday; // 1 to 7
               weeklyMinutes[weekday] = (weeklyMinutes[weekday] ?? 0) + mins;
             }
           } catch (_) {}
         }
+      }
+    }
+
+    // 2. Exact learning & study minutes from actual completed habit logs
+    final logs = getLogs();
+    final habits = getHabits();
+    final habitMap = {for (final h in habits) h.id: h};
+
+    for (final log in logs) {
+      if (log.completed) {
+        try {
+          final logDate = DateTime.parse(log.date);
+          final dayOnly = DateTime(logDate.year, logDate.month, logDate.day);
+          final diffDays = dayOnly.difference(monday).inDays;
+          if (diffDays >= 0 && diffDays < 7) {
+            final weekday = logDate.weekday;
+            final habit = habitMap[log.habitId];
+            if (habit != null) {
+              int minsToAdd = 0;
+              if (habit.targetUnit == 'mins') {
+                minsToAdd = habit.targetValue;
+              } else if (habit.category.toLowerCase().contains('learning') ||
+                  habit.category.toLowerCase().contains('mindfulness') ||
+                  habit.title.toLowerCase().contains('read') ||
+                  habit.title.toLowerCase().contains('study')) {
+                minsToAdd = (habit.targetValue * 15).clamp(15, 60);
+              }
+              if (minsToAdd > 0) {
+                weeklyMinutes[weekday] = (weeklyMinutes[weekday] ?? 0) + minsToAdd;
+              }
+            }
+          }
+        } catch (_) {}
       }
     }
 

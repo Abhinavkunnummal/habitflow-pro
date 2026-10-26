@@ -1,9 +1,13 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/components/aurora_card.dart';
 import '../../../core/components/habit_text_field.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../dashboard/providers/habits_provider.dart';
 import '../models/contest_model.dart';
 import '../providers/contests_provider.dart';
 
@@ -22,6 +26,9 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(contestsProvider.notifier).loadContestsAndLeaderboard();
+    });
   }
 
   @override
@@ -44,7 +51,7 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
             children: [
               Icon(Icons.emoji_events_rounded, color: AppColors.streakFire),
               SizedBox(width: 8),
-              Text('Create Contest'),
+              Expanded(child: Text('Create Contest', overflow: TextOverflow.ellipsis)),
             ],
           ),
           content: SingleChildScrollView(
@@ -91,16 +98,16 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
                 ),
                 const SizedBox(height: 12),
                 const Text('Duration:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                Row(
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
                   children: [7, 14, 30].map((d) {
                     final isSel = durationDays == d;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: FilterChip(
-                        label: Text('$d Days'),
-                        selected: isSel,
-                        onSelected: (_) => setDialogState(() => durationDays = d),
-                      ),
+                    return FilterChip(
+                      label: Text('$d Days'),
+                      selected: isSel,
+                      onSelected: (_) => setDialogState(() => durationDays = d),
                     );
                   }).toList(),
                 ),
@@ -141,47 +148,75 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final state = ref.watch(contestsProvider);
+    final habits = ref.watch(habitsProvider);
+    final authState = ref.watch(authProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Community Contests',
-          style: AppTypography.headline(
-            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+    final maxHabitStreak = habits.fold<int>(0, (max, h) => h.streak > max ? h.streak : max);
+    final userStreak = (authState.user?.currentStreak != null && authState.user!.currentStreak > maxHabitStreak)
+        ? authState.user!.currentStreak
+        : maxHabitStreak;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/profile');
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Community Contests',
+            style: AppTypography.headline(
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/profile');
+              }
+            },
+          ),
+          actions: [
+            IconButton(
+              tooltip: 'Refresh Leaderboard',
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () => ref.read(contestsProvider.notifier).loadContestsAndLeaderboard(),
+            ),
+          ],
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: AppColors.primary,
+            labelColor: AppColors.primary,
+            unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            tabs: const [
+              Tab(icon: Icon(Icons.emoji_events_rounded, size: 20), text: 'Active Contests'),
+              Tab(icon: Icon(Icons.leaderboard_rounded, size: 20), text: 'Leaderboard'),
+            ],
           ),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh Leaderboard',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => ref.read(contestsProvider.notifier).loadContestsAndLeaderboard(),
-          ),
-        ],
-        bottom: TabBar(
+        body: TabBarView(
           controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          tabs: const [
-            Tab(icon: Icon(Icons.emoji_events_rounded, size: 20), text: 'Active Contests'),
-            Tab(icon: Icon(Icons.leaderboard_rounded, size: 20), text: 'Leaderboard'),
+          children: [
+            _buildContestsTab(isDark, state),
+            _buildLeaderboardTab(isDark, state, userStreak),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildContestsTab(isDark, state),
-          _buildLeaderboardTab(isDark, state),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Create Contest'),
-        onPressed: _showCreateContestDialog,
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Create Contest'),
+          onPressed: _showCreateContestDialog,
+        ),
       ),
     );
   }
@@ -373,7 +408,7 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
     );
   }
 
-  Widget _buildLeaderboardTab(bool isDark, ContestsState state) {
+  Widget _buildLeaderboardTab(bool isDark, ContestsState state, int userStreak) {
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -442,7 +477,7 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
                       ),
                       Text(
-                        'Level ${leaderboard.first.level} • ${leaderboard.first.xp} XP • ${leaderboard.first.currentStreak}d Streak',
+                        'Level ${leaderboard.first.level} • ${leaderboard.first.xp} XP • ${leaderboard.first.isCurrentUser ? math.max(leaderboard.first.currentStreak, userStreak) : leaderboard.first.currentStreak}d Streak',
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
@@ -466,7 +501,7 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
         const SizedBox(height: 8),
 
         // ALL participants are rendered cleanly
-        ...leaderboard.map((user) => _buildLeaderboardTile(isDark, user)),
+        ...leaderboard.map((user) => _buildLeaderboardTile(isDark, user, userStreak)),
 
         const SizedBox(height: 16),
         Center(
@@ -566,8 +601,11 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
     );
   }
 
-  Widget _buildLeaderboardTile(bool isDark, GlobalLeaderboardUser user) {
+  Widget _buildLeaderboardTile(bool isDark, GlobalLeaderboardUser user, int userStreak) {
     final isMe = user.isCurrentUser;
+    final displayedStreak = isMe
+        ? math.max(user.currentStreak, userStreak)
+        : user.currentStreak;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -635,7 +673,7 @@ class _ContestsScreenState extends ConsumerState<ContestsScreen>
                   ],
                 ),
                 Text(
-                  'Lvl ${user.level} • ${user.currentStreak} day streak 🔥',
+                  'Lvl ${user.level} • $displayedStreak day streak 🔥',
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
