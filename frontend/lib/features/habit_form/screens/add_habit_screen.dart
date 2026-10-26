@@ -414,18 +414,24 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.notifications_active_rounded, color: AppColors.primary, size: 22),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Daily & Future Reminders',
-                              style: AppTypography.titleMedium(
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                              ).copyWith(fontSize: 14),
-                            ),
-                          ],
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.notifications_active_rounded, color: AppColors.primary, size: 22),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Daily & Future Reminders',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.titleMedium(
+                                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                  ).copyWith(fontSize: 14),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Switch(
                           value: _reminderEnabled,
                           activeColor: AppColors.secondaryFixed,
@@ -440,29 +446,35 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Reminder Alert Time',
-                                style: AppTypography.labelMedium(
-                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Reminder Alert Time',
+                                  style: AppTypography.labelMedium(
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _reminderTime,
-                                style: AppTypography.headline(
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ).copyWith(fontSize: 18),
-                              ),
-                            ],
+                                const SizedBox(height: 2),
+                                Text(
+                                  _reminderTime,
+                                  style: AppTypography.headline(
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ).copyWith(fontSize: 18),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 6),
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
                                 tooltip: 'Test Pleasant Chime',
                                 icon: const Icon(Icons.volume_up_rounded, color: AppColors.primary),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
                                 onPressed: () {
                                   AudioFeedbackService.playReminderChime();
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -473,10 +485,12 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
                                   );
                                 },
                               ),
+                              const SizedBox(width: 8),
                               OutlinedButton.icon(
-                                icon: const Icon(Icons.access_time_rounded, size: 16),
-                                label: const Text('Change Time'),
+                                icon: const Icon(Icons.access_time_rounded, size: 15),
+                                label: const Text('Change', style: TextStyle(fontSize: 12)),
                                 style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                   foregroundColor: isDark ? Colors.white : AppColors.primary,
                                   side: BorderSide(
                                     color: isDark ? AppColors.darkSurfaceContainerHigh : AppColors.surfaceContainerHigh,
@@ -522,36 +536,40 @@ class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
                           (day: 7, label: 'S'),
                         ].map((d) {
                           final isSelected = _selectedDays.contains(d.day);
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (isSelected) {
-                                  if (_selectedDays.length > 1) {
-                                    _selectedDays.remove(d.day);
-                                  }
-                                } else {
-                                  _selectedDays.add(d.day);
-                                }
-                              });
-                            },
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : (isDark
-                                        ? AppColors.darkSurfaceContainerHigh
-                                        : AppColors.surfaceContainerHigh),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  d.label,
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.white : (isDark ? Colors.white60 : Colors.black54),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    if (isSelected) {
+                                      if (_selectedDays.length > 1) {
+                                        _selectedDays.remove(d.day);
+                                      }
+                                    } else {
+                                      _selectedDays.add(d.day);
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : (isDark
+                                            ? AppColors.darkSurfaceContainerHigh
+                                            : AppColors.surfaceContainerHigh),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      d.label,
+                                      style: TextStyle(
+                                        color: isSelected ? Colors.white : (isDark ? Colors.white60 : Colors.black54),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),

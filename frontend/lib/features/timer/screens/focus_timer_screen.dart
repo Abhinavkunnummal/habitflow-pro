@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/components/aurora_card.dart';
+import '../../../core/components/tree_growth_animation.dart';
 import '../../../core/services/audio_feedback_service.dart';
+import '../../../core/storage/local_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 
@@ -13,14 +15,19 @@ class FocusTimerScreen extends StatefulWidget {
   State<FocusTimerScreen> createState() => _FocusTimerScreenState();
 }
 
-class _FocusTimerScreenState extends State<FocusTimerScreen> {
+class _FocusTimerScreenState extends State<FocusTimerScreen>
+    with WidgetsBindingObserver {
   int _initialSeconds = 25 * 60;
   int _remainingSeconds = 25 * 60;
   bool _isRunning = false;
   Timer? _timer;
   String _selectedSoundscape = 'Forest Breeze';
+  bool _retentionCheckEnabled = true;
+  int _secondsSinceLastCheck = 0;
+  LocalStorage? _storage;
+  bool _isInitialized = false;
 
-  final List<int> _presetMinutes = [15, 25, 45, 60];
+  final List<int> _presetMinutes = [15, 25, 30, 45, 60];
   final List<({String name, IconData icon})> _soundscapes = [
     (name: 'Forest Breeze', icon: Icons.forest_rounded),
     (name: 'Gentle Rain', icon: Icons.water_drop_rounded),
@@ -29,27 +36,131 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initStorageAndRestoreState();
+  }
+
+  Future<void> _initStorageAndRestoreState() async {
+    _storage = await LocalStorage.create();
+    final saved = _storage?.getFocusTimerState();
+
+    if (saved != null && saved.remainingSeconds > 0) {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final elapsedSec = (nowMs - saved.timestamp) ~/ 1000;
+
+      setState(() {
+        _initialSeconds = saved.initialSeconds;
+        if (saved.isRunning) {
+          final adjusted = saved.remainingSeconds - elapsedSec;
+          if (adjusted <= 0) {
+            _remainingSeconds = 0;
+            _isRunning = false;
+            _storage?.clearFocusTimerState();
+            _isInitialized = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              AudioFeedbackService.playTimerAlarm();
+              _showSessionCompleteModal();
+            });
+            return;
+          } else {
+            _remainingSeconds = adjusted;
+            _isRunning = true;
+            _startTimerTicker();
+          }
+        } else {
+          // Paused state preserved exactly (e.g. at 23 minutes remaining)
+          _remainingSeconds = saved.remainingSeconds;
+          _isRunning = false;
+        }
+        _isInitialized = true;
+      });
+    } else {
+      setState(() {
+        _isInitialized = true;
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _persistCurrentTimerState();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _persistCurrentTimerState();
     super.dispose();
+  }
+
+  void _persistCurrentTimerState() {
+    if (_storage == null) return;
+    if (_remainingSeconds > 0 && _remainingSeconds < _initialSeconds) {
+      _storage?.saveFocusTimerState(
+        initialSeconds: _initialSeconds,
+        remainingSeconds: _remainingSeconds,
+        isRunning: _isRunning,
+      );
+    } else if (_remainingSeconds <= 0) {
+      _storage?.clearFocusTimerState();
+    }
+  }
+
+  void _startTimerTicker() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() {
+          _remainingSeconds--;
+          _secondsSinceLastCheck++;
+        });
+
+        // Save state to disk every 5 seconds
+        if (_remainingSeconds % 5 == 0) {
+          _persistCurrentTimerState();
+        }
+
+        // Periodic Focus Retention Check-In (Every 10 minutes = 600 seconds)
+        if (_retentionCheckEnabled &&
+            _secondsSinceLastCheck >= 600 &&
+            _remainingSeconds > 60) {
+          _timer?.cancel();
+          setState(() {
+            _isRunning = false;
+            _secondsSinceLastCheck = 0;
+          });
+          _persistCurrentTimerState();
+          _showFocusRetentionCheckInModal();
+        }
+      } else {
+        _timer?.cancel();
+        setState(() => _isRunning = false);
+        _storage?.clearFocusTimerState();
+        // Record focus minutes into learning analytics
+        final completedMins = _initialSeconds ~/ 60;
+        _storage?.recordFocusSession(completedMins);
+        AudioFeedbackService.playTimerAlarm();
+        _showSessionCompleteModal();
+      }
+    });
   }
 
   void _toggleTimer() {
     if (_isRunning) {
       _timer?.cancel();
       setState(() => _isRunning = false);
+      _persistCurrentTimerState();
     } else {
       setState(() => _isRunning = true);
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (_remainingSeconds > 0) {
-          setState(() => _remainingSeconds--);
-        } else {
-          _timer?.cancel();
-          setState(() => _isRunning = false);
-          AudioFeedbackService.playTimerAlarm();
-          _showSessionCompleteModal();
-        }
-      });
+      _persistCurrentTimerState();
+      _startTimerTicker();
     }
   }
 
@@ -58,7 +169,9 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
     setState(() {
       _isRunning = false;
       _remainingSeconds = _initialSeconds;
+      _secondsSinceLastCheck = 0;
     });
+    _storage?.clearFocusTimerState();
   }
 
   void _setPreset(int minutes) {
@@ -67,7 +180,132 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
       _isRunning = false;
       _initialSeconds = minutes * 60;
       _remainingSeconds = minutes * 60;
+      _secondsSinceLastCheck = 0;
     });
+    _storage?.clearFocusTimerState();
+  }
+
+  void _showFocusRetentionCheckInModal() {
+    String selectedChoice = '🎯 Deeply immersed & making progress';
+    final choices = [
+      '🎯 Deeply immersed & making progress',
+      '📚 Reviewing notes & solving problems',
+      '🧘 Quick breath taken, ready for next sprint',
+    ];
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.darkSurface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.psychology_rounded, color: AppColors.primary, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Focus Retention Check',
+                  style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '10 unbroken minutes completed! Confirm you are retaining focus on your core task:',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              ...choices.map((c) {
+                final isSelected = selectedChoice == c;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => setDialogState(() => selectedChoice = c),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primary.withOpacity(0.2)
+                            : AppColors.darkSurfaceContainer,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? AppColors.primary : Colors.transparent,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                            color: isSelected ? AppColors.primary : Colors.white38,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              c,
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.white70,
+                                fontSize: 12.5,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _resetTimer();
+              },
+              child: const Text('End Session', style: TextStyle(color: Colors.white54)),
+            ),
+            FilledButton.icon(
+              icon: const Icon(Icons.play_arrow_rounded, size: 18),
+              label: const Text('Verify & Resume Flow'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                AudioFeedbackService.playTaskCompleteSound();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Focus verified! +15 Focus Momentum points 🎯'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                setState(() => _isRunning = true);
+                _persistCurrentTimerState();
+                _startTimerTicker();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSessionCompleteModal() {
@@ -85,12 +323,12 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                 color: AppColors.secondaryFixed.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.notifications_active_rounded, color: AppColors.secondaryFixed, size: 24),
+              child: const Icon(Icons.celebration_rounded, color: AppColors.secondaryFixed, size: 26),
             ),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
-                'Session Complete! 🔔',
+                'Deep Work Completed! 🌸',
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
@@ -98,19 +336,30 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            const SizedBox(height: 6),
+            // Fully Bloomed Majestic Tree Animation
+            const Center(
+              child: TreeGrowthAnimation(
+                progress: 1.0,
+                size: 150,
+                isCompleted: true,
+              ),
+            ),
+            const SizedBox(height: 12),
             const Text(
               'Unbroken flow session logged. +50 XP and consistency recorded.',
+              textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 13.5),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.darkSurfaceContainer,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.secondaryFixed.withOpacity(0.2)),
+                border: Border.all(color: AppColors.secondaryFixed.withOpacity(0.25)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +432,16 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = (_initialSeconds - _remainingSeconds) / _initialSeconds;
+    if (!_isInitialized) {
+      return const Scaffold(
+        backgroundColor: AppColors.darkBackground,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final progress = _initialSeconds > 0
+        ? ((_initialSeconds - _remainingSeconds) / _initialSeconds).clamp(0.0, 1.0)
+        : 0.0;
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
@@ -198,10 +456,30 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
           'Focus Session',
           style: AppTypography.headline(color: Colors.white),
         ),
+        actions: [
+          IconButton(
+            tooltip: _retentionCheckEnabled ? 'Disable Focus Check-Ins' : 'Enable Focus Check-Ins',
+            icon: Icon(
+              _retentionCheckEnabled ? Icons.psychology_rounded : Icons.psychology_outlined,
+              color: _retentionCheckEnabled ? AppColors.secondaryFixed : Colors.white38,
+            ),
+            onPressed: () {
+              setState(() => _retentionCheckEnabled = !_retentionCheckEnabled);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(_retentionCheckEnabled
+                      ? 'Periodic 10m Focus Check-Ins Enabled 🧠'
+                      : 'Focus Check-Ins Paused'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
           child: Column(
             children: [
               // Presets
@@ -210,7 +488,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                 children: _presetMinutes.map((mins) {
                   final isSelected = _initialSeconds == mins * 60;
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 3.0),
                     child: ChoiceChip(
                       label: Text('${mins}m'),
                       selected: isSelected,
@@ -219,6 +497,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       labelStyle: TextStyle(
                         color: isSelected ? Colors.white : Colors.white70,
                         fontWeight: FontWeight.bold,
+                        fontSize: 12.5,
                       ),
                       shape: const StadiumBorder(),
                       onSelected: (_) => _setPreset(mins),
@@ -226,18 +505,26 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                   );
                 }).toList(),
               ),
-              const Spacer(),
+              const SizedBox(height: 16),
 
-              // Circular Countdown Timer
+              // Animated Focus Tree Growing Component
+              TreeGrowthAnimation(
+                progress: progress,
+                size: 150,
+                isCompleted: _remainingSeconds == 0,
+              ),
+              const SizedBox(height: 12),
+
+              // Circular Countdown Timer Indicator
               Stack(
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    width: 230,
-                    height: 230,
+                    width: 200,
+                    height: 200,
                     child: CircularProgressIndicator(
                       value: 1.0 - progress,
-                      strokeWidth: 12,
+                      strokeWidth: 10,
                       backgroundColor: AppColors.darkSurfaceContainerHigh,
                       valueColor: const AlwaysStoppedAnimation<Color>(
                         AppColors.secondaryFixed,
@@ -250,7 +537,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       Text(
                         _formatTime(_remainingSeconds),
                         style: AppTypography.displayLarge(color: Colors.white).copyWith(
-                          fontSize: 48,
+                          fontSize: 44,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -1,
                         ),
@@ -271,7 +558,7 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                   ),
                 ],
               ),
-              const Spacer(),
+              const SizedBox(height: 20),
 
               // Ambient Soundscapes
               AuroraCard(
@@ -280,9 +567,24 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Ambient Soundscape',
-                      style: AppTypography.labelMedium(color: Colors.white70),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Ambient Soundscape',
+                          style: AppTypography.labelMedium(color: Colors.white70),
+                        ),
+                        Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline, size: 14, color: AppColors.secondaryFixed),
+                            const SizedBox(width: 4),
+                            Text(
+                              _retentionCheckEnabled ? '10m Check-ins Active' : 'Check-ins Off',
+                              style: const TextStyle(fontSize: 10, color: AppColors.secondaryFixed),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -323,22 +625,23 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
 
               // Control Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
+                    tooltip: 'Reset Session',
                     onPressed: _resetTimer,
-                    icon: const Icon(Icons.refresh_rounded, color: Colors.white70, size: 30),
+                    icon: const Icon(Icons.refresh_rounded, color: Colors.white70, size: 28),
                   ),
                   const SizedBox(width: 24),
                   GestureDetector(
                     onTap: _toggleTimer,
                     child: Container(
-                      width: 72,
-                      height: 72,
+                      width: 68,
+                      height: 68,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [AppColors.primary, AppColors.primaryContainer],
@@ -355,18 +658,23 @@ class _FocusTimerScreenState extends State<FocusTimerScreen> {
                       child: Icon(
                         _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
                         color: Colors.white,
-                        size: 38,
+                        size: 36,
                       ),
                     ),
                   ),
                   const SizedBox(width: 24),
                   IconButton(
-                    onPressed: () => context.go('/celebration'),
-                    icon: const Icon(Icons.skip_next_rounded, color: Colors.white70, size: 30),
+                    tooltip: 'Quick Complete Flow',
+                    onPressed: () {
+                      _storage?.clearFocusTimerState();
+                      _storage?.recordFocusSession(_initialSeconds ~/ 60);
+                      context.go('/celebration');
+                    },
+                    icon: const Icon(Icons.skip_next_rounded, color: Colors.white70, size: 28),
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
             ],
           ),
         ),

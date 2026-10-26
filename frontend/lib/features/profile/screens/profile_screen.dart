@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -101,9 +102,20 @@ class ProfileScreen extends ConsumerWidget {
     final user = authState.user;
     final displayName = user?.name ?? 'Alex Rivera';
     final displayEmail = user?.email ?? (authState.isOfflineMode ? 'Offline Mode' : 'alex@habitflow.pro');
-    final level = user?.level ?? 1;
-    final streak = user?.currentStreak ?? 0;
+    final habits = ref.watch(habitsProvider);
+    final storage = ref.watch(localStorageProvider);
+
+    final maxHabitStreak = habits.fold<int>(0, (max, h) => h.streak > max ? h.streak : max);
+    final streak = (user?.currentStreak != null && user!.currentStreak > maxHabitStreak)
+        ? user.currentStreak
+        : maxHabitStreak;
+    final bestStreak = (user?.longestStreak != null && user!.longestStreak > streak)
+        ? user.longestStreak
+        : streak;
+    final xp = user?.xp ?? (streak * 50);
+    final level = user?.level ?? (1 + xp ~/ 200);
     final firstLetter = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'A';
+    final weeklyMinutes = storage.getWeeklyFocusMinutes();
 
     return Scaffold(
       appBar: AppBar(
@@ -206,15 +218,19 @@ class ProfileScreen extends ConsumerWidget {
                           _buildDivider(isDark),
                           _buildStatItem('Streak', '${streak}d', isDark),
                           _buildDivider(isDark),
-                          _buildStatItem('Best', '${user?.longestStreak ?? 0}d', isDark),
+                          _buildStatItem('Best', '${bestStreak}d', isDark),
                           _buildDivider(isDark),
-                          _buildStatItem('XP', '${user?.xp ?? 0}', isDark),
+                          _buildStatItem('XP', '$xp', isDark),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 18),
+
+              // Learning & Deep Focus Progress Curve Card
+              _buildLearningProgressCard(isDark, weeklyMinutes),
               const SizedBox(height: 24),
 
               // Preferences Section
@@ -390,6 +406,196 @@ class ProfileScreen extends ConsumerWidget {
       width: 1,
       height: 24,
       color: isDark ? AppColors.darkSurfaceContainerHigh : AppColors.surfaceContainerHigh,
+    );
+  }
+
+  Widget _buildLearningProgressCard(bool isDark, Map<int, int> weeklyMinutes) {
+    final todayWeekday = DateTime.now().weekday; // 1 to 7
+    final totalMins = weeklyMinutes.values.fold<int>(0, (sum, v) => sum + v);
+    final avgMins = (totalMins / 7).round();
+    final maxMins = math.max(80, weeklyMinutes.values.fold<int>(0, (m, v) => v > m ? v : m));
+    final days = [
+      (day: 1, label: 'M'),
+      (day: 2, label: 'T'),
+      (day: 3, label: 'W'),
+      (day: 4, label: 'T'),
+      (day: 5, label: 'F'),
+      (day: 6, label: 'S'),
+      (day: 7, label: 'S'),
+    ];
+
+    return AuroraCard(
+      hasAuroraBorder: true,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.auto_graph_rounded, color: AppColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Learning & Focus Curve',
+                        style: AppTypography.titleMedium(
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        ).copyWith(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Weekly deep focus minutes',
+                        style: AppTypography.labelMedium(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        ).copyWith(fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryFixed.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(9999),
+                ),
+                child: Text(
+                  '${(totalMins / 60).toStringAsFixed(1)} hrs total',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.secondaryFixed,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // 7-Day Bar Chart
+          SizedBox(
+            height: 120,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: days.map((d) {
+                final mins = weeklyMinutes[d.day] ?? 0;
+                final isToday = d.day == todayWeekday;
+                final barRatio = (mins / maxMins).clamp(0.08, 1.0);
+                final barHeight = 72.0 * barRatio;
+
+                return Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${mins}m',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                          color: isToday
+                              ? AppColors.secondaryFixed
+                              : (isDark ? Colors.white54 : Colors.black54),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        width: 18,
+                        height: barHeight,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: isToday
+                                ? [AppColors.primary, AppColors.secondaryFixed]
+                                : [
+                                    AppColors.primary.withOpacity(0.6),
+                                    AppColors.primaryContainer.withOpacity(0.4),
+                                  ],
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: isToday
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.secondaryFixed.withOpacity(0.35),
+                                    blurRadius: 6,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isToday
+                              ? AppColors.primary
+                              : (isDark ? AppColors.darkSurfaceContainer : AppColors.surfaceContainerHigh),
+                        ),
+                        child: Center(
+                          child: Text(
+                            d.label,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              color: isToday
+                                  ? Colors.white
+                                  : (isDark ? Colors.white70 : Colors.black87),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1),
+          const SizedBox(height: 10),
+
+          // Summary Stats Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '⚡ Avg: $avgMins mins/day',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.verified_rounded, size: 14, color: AppColors.secondaryFixed),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Top 5% Consistency',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,8 @@
+import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_providers.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../dashboard/providers/habits_provider.dart';
 import '../models/contest_model.dart';
 
 class ContestsState {
@@ -38,14 +40,42 @@ class ContestsState {
 final contestsProvider = StateNotifierProvider<ContestsNotifier, ContestsState>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   final authState = ref.watch(authProvider);
-  return ContestsNotifier(apiClient, authState.user?.name ?? 'Alex Rivera');
+  final habits = ref.watch(habitsProvider);
+
+  final maxHabitStreak = habits.fold<int>(0, (max, h) => h.streak > max ? h.streak : max);
+  final userStreak = (authState.user?.currentStreak != null && authState.user!.currentStreak > maxHabitStreak)
+      ? authState.user!.currentStreak
+      : maxHabitStreak;
+  final userXp = authState.user?.xp ?? (userStreak * 50);
+  final userLevel = authState.user?.level ?? (1 + userXp ~/ 200);
+
+  return ContestsNotifier(
+    apiClient,
+    currentUserName: authState.user?.name ?? 'Alex Rivera',
+    currentUserStreak: userStreak,
+    currentUserXp: userXp,
+    currentUserLevel: userLevel,
+  );
 });
 
 class ContestsNotifier extends StateNotifier<ContestsState> {
   final dynamic _apiClient;
   final String _currentUserName;
+  final int _currentUserStreak;
+  final int _currentUserXp;
+  final int _currentUserLevel;
 
-  ContestsNotifier(this._apiClient, this._currentUserName) : super(const ContestsState()) {
+  ContestsNotifier(
+    this._apiClient, {
+    required String currentUserName,
+    required int currentUserStreak,
+    required int currentUserXp,
+    required int currentUserLevel,
+  })  : _currentUserName = currentUserName,
+        _currentUserStreak = currentUserStreak,
+        _currentUserXp = currentUserXp,
+        _currentUserLevel = currentUserLevel,
+        super(const ContestsState()) {
     loadContestsAndLeaderboard();
   }
 
@@ -66,14 +96,26 @@ class ContestsNotifier extends StateNotifier<ContestsState> {
       if (leaderboardData is Map<String, dynamic>) {
         final list = leaderboardData['leaderboard'];
         if (list is List) {
-          leaderboard = list
-              .asMap()
-              .entries
-              .map((e) => GlobalLeaderboardUser.fromMap(
-                    e.value as Map<String, dynamic>,
-                    e.key + 1,
-                  ))
-              .toList();
+          leaderboard = list.asMap().entries.map((e) {
+            final u = GlobalLeaderboardUser.fromMap(
+              e.value as Map<String, dynamic>,
+              e.key + 1,
+            );
+            if (u.isCurrentUser || u.name == _currentUserName) {
+              return GlobalLeaderboardUser(
+                rank: u.rank,
+                id: u.id,
+                name: u.name,
+                level: math.max(u.level, _currentUserLevel),
+                xp: math.max(u.xp, _currentUserXp),
+                currentStreak: math.max(u.currentStreak, _currentUserStreak),
+                longestStreak: math.max(u.longestStreak, _currentUserStreak),
+                avatarUrl: u.avatarUrl,
+                isCurrentUser: true,
+              );
+            }
+            return u;
+          }).toList();
         }
         userRank = (leaderboardData['currentUserRank'] as num?)?.toInt();
       }
@@ -85,10 +127,10 @@ class ContestsNotifier extends StateNotifier<ContestsState> {
             rank: 1,
             id: 'u_current',
             name: _currentUserName,
-            level: 1,
-            xp: 0,
-            currentStreak: 0,
-            longestStreak: 0,
+            level: _currentUserLevel,
+            xp: _currentUserXp,
+            currentStreak: _currentUserStreak,
+            longestStreak: _currentUserStreak,
             isCurrentUser: true,
           ),
         ];
@@ -109,7 +151,7 @@ class ContestsNotifier extends StateNotifier<ContestsState> {
 
   void _loadOfflineFallback() {
     final offlineContests = [
-      const ContestModel(
+      ContestModel(
         id: 'c1',
         title: '30-Day Consistency Championship',
         description: 'Compete across the community! Complete your core habits daily to stay on the leaderboard podium.',
@@ -122,8 +164,8 @@ class ContestsNotifier extends StateNotifier<ContestsState> {
         participantCount: 1,
         isOfficial: true,
         isJoined: true,
-        userScore: 0,
-        userStreak: 0,
+        userScore: _currentUserXp,
+        userStreak: _currentUserStreak,
         userRank: 1,
       ),
       const ContestModel(
@@ -140,7 +182,7 @@ class ContestsNotifier extends StateNotifier<ContestsState> {
         isOfficial: true,
         isJoined: false,
       ),
-      const ContestModel(
+      ContestModel(
         id: 'c3',
         title: '7-Day Mind & Body Wellness Rush',
         description: 'Hydration, meditation, and active recovery streaks.',
@@ -153,8 +195,8 @@ class ContestsNotifier extends StateNotifier<ContestsState> {
         participantCount: 1,
         isOfficial: true,
         isJoined: true,
-        userScore: 0,
-        userStreak: 0,
+        userScore: _currentUserXp,
+        userStreak: _currentUserStreak,
         userRank: 1,
       ),
     ];
@@ -164,13 +206,21 @@ class ContestsNotifier extends StateNotifier<ContestsState> {
         rank: 1,
         id: 'u_current',
         name: _currentUserName,
-        level: 1,
-        xp: 0,
-        currentStreak: 0,
-        longestStreak: 0,
+        level: _currentUserLevel,
+        xp: _currentUserXp,
+        currentStreak: _currentUserStreak,
+        longestStreak: _currentUserStreak,
         isCurrentUser: true,
       ),
     ];
+
+    state = state.copyWith(
+      contests: offlineContests,
+      leaderboard: offlineLeaderboard,
+      currentUserRank: 1,
+      isLoading: false,
+    );
+  }
 
     state = state.copyWith(
       contests: offlineContests,
